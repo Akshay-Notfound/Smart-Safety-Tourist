@@ -593,31 +593,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            _buildInfoCard(
-              icon: Icons.touch_app_outlined,
-              title: 'Quick Actions',
-              child: Column(
-                children: [
-                  _buildActionButton(
-                      context, Icons.person, 'Edit Profile'),
-                  const Divider(),
-                  _buildActionButton(
-                      context, Icons.badge_outlined, 'View Digital ID'),
-                  const Divider(),
-                  _buildActionButton(
-                      context, Icons.map_outlined, 'Manage Itinerary'),
-                  const Divider(),
-                  _buildActionButton(context,
-                      Icons.contact_phone_outlined, 'Emergency Contacts'),
-                  const Divider(),
-                  _buildActionButton(context,
-                      Icons.upload_file, 'Upload Documents'),
-                  const Divider(),
-                  _buildActionButton(context,
-                      Icons.badge, 'View Aadhaar Details'),
-                ],
-              ),
-            ),
             const SizedBox(height: 16),
             _buildInfoCard(
               icon: Icons.track_changes_outlined,
@@ -643,71 +618,6 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.red.shade700,
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-    );
-  }
-
-  // !! CODE UPDATE KELA !!
-  Widget _buildActionButton(BuildContext context, IconData icon, String title) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(icon, color: Colors.deepPurple.shade400),
-      title: Text(title),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () {
-        // Digital ID sathi logic
-        if (title == 'View Digital ID' && userData != null) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => DigitalIdScreen(userData: userData!),
-            ),
-          );
-        }
-        // Itinerary sathi navin logic
-        else if (title == 'Manage Itinerary') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => ItineraryScreen()),
-          );
-        }
-        // Emergency Contacts sathi navin logic
-        else if (title == 'Emergency Contacts') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => EmergencyContactsScreen()),
-          );
-        }
-        // Document Upload logic
-        else if (title == 'Upload Documents') {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => DocumentUploadScreen()),
-          );
-        }
-        // Aadhaar Details logic
-        else if (title == 'View Aadhaar Details' && user != null) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => AadharDetailScreen(userId: user!.uid)),
-          );
-        }
-        // Edit Profile logic
-        else if (title == 'Edit Profile' && userData != null) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => EditProfileScreen(userData: userData!)),
-          ).then((value) {
-            if (value == true) {
-              // Refresh user data after successful edit
-              _fetchUserData();
-            }
-          });
-        }
-      },
     );
   }
 
