@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "556446695283",
+    "project_id": "smart-tourist-project",
+    "storage_bucket": "smart-tourist-project.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:556446695283:android:cec094790c0c3d2a298f06",
+        "android_client_info": {
+          "package_name": "tech.safetravel.smarttourist.smart_tourist_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDPZ-TzOjqAuYVk2ftF_PtQ5nU_baT2Cac"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
