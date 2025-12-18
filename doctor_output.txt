@@ -1,0 +1,15 @@
+Doctor summary (to see all details, run flutter doctor -v):
+[ΓêÜ] Flutter (Channel stable, 3.35.7, on Microsoft Windows [Version 10.0.26220.7262], locale en-IN)
+[ΓêÜ] Windows Version (Windows 11 or higher, 25H2, 2009)
+[ΓêÜ] Android toolchain - develop for Android devices (Android SDK version 36.0.0)
+[ΓêÜ] Chrome - develop for the web
+[ΓêÜ] Visual Studio - develop Windows apps (Visual Studio Build Tools 2019 16.11.50)
+[!] Android Studio (version 2025.1.4)
+    X Unable to determine bundled Java version.
+[ΓêÜ] Android Studio (version 2025.2.1)
+[ΓêÜ] VS Code (version 1.106.2)
+[ΓêÜ] VS Code (version 1.106.0-insider)
+[ΓêÜ] Connected device (3 available)
+[ΓêÜ] Network resources
+
+! Doctor found issues in 1 category.

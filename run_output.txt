@@ -1,0 +1,3 @@
+Launching lib\main.dart on Windows in debug mode...
+PathExistsException: Cannot create link, path = 'D:\Projects for Final Year testing\smart_tourist_app\windows\flutter\ephemeral\.plugin_symlinks\cloud_firestore' (OS Error: Cannot create a file when that file already exists.
+, errno = 183)
