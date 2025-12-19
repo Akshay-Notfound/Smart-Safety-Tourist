@@ -182,7 +182,7 @@ class CookiesPolicyScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Developer: Akshay Rathod',
+                      'Developers: Akshay Rathod & Meghana Mehetre',
                       style: TextStyle(
                         fontSize: 14,
                         color: isDarkMode ? Colors.white70 : Colors.grey[600],

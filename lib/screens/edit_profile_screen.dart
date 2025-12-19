@@ -1,10 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart'; // For kIsWeb, Uint8List
+import 'dart:typed_data'; // For Uint8List
+import '../services/cloudinary_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
-  
+
   const EditProfileScreen({super.key, required this.userData});
 
   @override
@@ -14,23 +18,32 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final User? user = FirebaseAuth.instance.currentUser;
-  
+
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
   late TextEditingController _emergencyController;
   late TextEditingController _aadharController;
-  
+
   bool _isSaving = false;
+  XFile? _profileImage;
+  String? _profileImageUrl;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.userData['fullName'] ?? '');
-    _emailController = TextEditingController(text: widget.userData['email'] ?? '');
-    _phoneController = TextEditingController(text: widget.userData['phoneNumber'] ?? '');
-    _emergencyController = TextEditingController(text: widget.userData['emergencyContact'] ?? '');
-    _aadharController = TextEditingController(text: widget.userData['aadharNumber'] ?? '');
+    _nameController =
+        TextEditingController(text: widget.userData['fullName'] ?? '');
+    _emailController =
+        TextEditingController(text: widget.userData['email'] ?? '');
+    _phoneController =
+        TextEditingController(text: widget.userData['phoneNumber'] ?? '');
+    _emergencyController =
+        TextEditingController(text: widget.userData['emergencyContact'] ?? '');
+    _aadharController =
+        TextEditingController(text: widget.userData['aadharNumber'] ?? '');
+    _profileImageUrl = widget.userData['profileImage'] ?? '';
   }
 
   @override
@@ -43,22 +56,178 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+  Future<void> _pickProfileImage(ImageSource source) async {
+    try {
+      final XFile? pickedFile = await _picker.pickImage(
+        source: source,
+        imageQuality: 80,
+      );
+
+      if (pickedFile != null) {
+        final length = await pickedFile.length();
+        print('Image picked: ${pickedFile.path}, Size: $length bytes');
+        setState(() {
+          _profileImage = pickedFile;
+        });
+
+        // Show a preview message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Image selected. Tap Save to upload.'),
+              backgroundColor: Colors.blue,
+            ),
+          );
+        }
+      } else {
+        // User cancelled the picker
+        print('No image selected');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No image selected'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error picking image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('Take a Photo'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickProfileImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickProfileImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<String?> _uploadProfileImage() async {
+    if (_profileImage == null) return _profileImageUrl;
+
+    try {
+      final response = await CloudinaryService.uploadFile(_profileImage!);
+
+      if (response != null) {
+        final secureUrl = CloudinaryService.getSecureUrl(response);
+        if (secureUrl != null) {
+          return secureUrl;
+        }
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to upload profile image'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error uploading profile image: $e');
+      if (mounted) {
+        // Extract error message if it's a Cloudinary error
+        String errorMessage = 'Error uploading profile image';
+        if (e.toString().contains('Upload failed:')) {
+          // Try to parse the JSON error from Cloudinary if possible, or just show the status
+          if (e.toString().contains('"message":')) {
+            final match =
+                RegExp(r'"message":"([^"]+)"').firstMatch(e.toString());
+            if (match != null) {
+              errorMessage = 'Upload failed: ${match.group(1)}';
+            } else {
+              errorMessage = e.toString().replaceAll('Exception: ', '');
+            }
+          } else {
+            errorMessage = e.toString().replaceAll('Exception: ', '');
+          }
+        } else {
+          errorMessage = 'Error: $e';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+
+    return null;
+  }
+
   Future<void> _saveProfile() async {
     if (!_formKey.currentState!.validate()) return;
-    
+
     setState(() {
       _isSaving = true;
     });
-    
+
     try {
-      await FirebaseFirestore.instance.collection('users').doc(user!.uid).update({
+      // Upload profile image if selected
+      String? profileImageUrl = _profileImageUrl;
+      if (_profileImage != null) {
+        profileImageUrl = await _uploadProfileImage();
+        if (profileImageUrl == null) {
+          // If image upload failed, don't save the profile
+          return;
+        }
+      }
+
+      // Prepare update data
+      final updateData = {
         'fullName': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'phoneNumber': _phoneController.text.trim(),
         'emergencyContact': _emergencyController.text.trim(),
         'aadharNumber': _aadharController.text.trim(),
-      });
-      
+      };
+
+      // Add profile image URL if available
+      if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
+        updateData['profileImage'] = profileImageUrl;
+      }
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user!.uid)
+          .update(updateData);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -66,7 +235,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        
+
         // Go back to previous screen
         Navigator.pop(context, true);
       }
@@ -124,37 +293,93 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Profile Picture Section
               Center(
                 child: Stack(
                   children: [
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.deepPurple.shade100,
-                      child: Text(
-                        _nameController.text.isNotEmpty 
-                            ? _nameController.text[0].toUpperCase() 
-                            : 'T',
-                        style: TextStyle(
-                          fontSize: 32,
-                          color: Colors.deepPurple.shade800,
+                    GestureDetector(
+                      onTap: _isSaving ? null : _showImagePickerOptions,
+                      child: ClipOval(
+                        child: SizedBox(
+                          width: 100,
+                          height: 100,
+                          child: _profileImage != null
+                              ? FutureBuilder<Uint8List>(
+                                  future: _profileImage!.readAsBytes(),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.connectionState ==
+                                            ConnectionState.done &&
+                                        snapshot.hasData) {
+                                      return Image.memory(
+                                        snapshot.data!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) {
+                                          return const Center(
+                                              child: Icon(Icons.error,
+                                                  color: Colors.red));
+                                        },
+                                      );
+                                    } else {
+                                      return const Center(
+                                          child: CircularProgressIndicator());
+                                    }
+                                  },
+                                )
+                              : (_profileImageUrl != null &&
+                                      _profileImageUrl!.isNotEmpty
+                                  ? Image.network(
+                                      _profileImageUrl!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                        return Center(
+                                          child: Text(
+                                            _nameController.text.isNotEmpty
+                                                ? _nameController.text[0]
+                                                    .toUpperCase()
+                                                : 'T',
+                                            style: TextStyle(
+                                              fontSize: 32,
+                                              color: Colors.deepPurple.shade800,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  : Center(
+                                      child: Text(
+                                        _nameController.text.isNotEmpty
+                                            ? _nameController.text[0]
+                                                .toUpperCase()
+                                            : 'T',
+                                        style: TextStyle(
+                                          fontSize: 32,
+                                          color: Colors.deepPurple.shade800,
+                                        ),
+                                      ),
+                                    )),
                         ),
                       ),
                     ),
                     Positioned(
                       bottom: 0,
                       right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.deepPurple,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.edit,
-                          color: Colors.white,
-                          size: 16,
+                      child: GestureDetector(
+                        onTap: _isSaving ? null : _showImagePickerOptions,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.deepPurple,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(
+                            Icons.edit,
+                            color: Colors.white,
+                            size: 16,
+                          ),
                         ),
                       ),
                     ),
@@ -162,7 +387,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
+              // Debug information
+              if (_profileImage != null)
+                const Text(
+                  'Local image selected',
+                  style: TextStyle(
+                    color: Colors.green,
+                    fontSize: 12,
+                  ),
+                  textAlign: TextAlign.center,
+                )
+              else if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty)
+                const Text(
+                  'Existing profile image loaded',
+                  style: TextStyle(
+                    color: Colors.blue,
+                    fontSize: 12,
+                  ),
+                  textAlign: TextAlign.center,
+                )
+              else
+                const Text(
+                  'No profile image set',
+                  style: TextStyle(
+                    color: Colors.grey,
+                    fontSize: 12,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              const SizedBox(height: 16),
+
               // Name Field
               TextFormField(
                 controller: _nameController,
@@ -181,7 +436,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              
+
               // Email Field
               TextFormField(
                 controller: _emailController,
@@ -197,14 +452,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   if (value == null || value.isEmpty) {
                     return 'Please enter your email';
                   }
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                      .hasMatch(value)) {
                     return 'Please enter a valid email';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
-              
+
               // Phone Number Field
               TextFormField(
                 controller: _phoneController,
@@ -224,7 +480,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              
+
               // Emergency Contact Field
               TextFormField(
                 controller: _emergencyController,
@@ -244,7 +500,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              
+
               // Aadhaar Number Field
               TextFormField(
                 controller: _aadharController,
@@ -258,19 +514,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 32),
-              
+
               // Save Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: _isSaving ? null : _saveProfile,
-                  icon: _isSaving 
+                  icon: _isSaving
                       ? const SizedBox(
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
                       : const Icon(Icons.save),
@@ -283,9 +540,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Cancel Button
               SizedBox(
                 width: double.infinity,

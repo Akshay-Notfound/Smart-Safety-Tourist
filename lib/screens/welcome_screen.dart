@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'login_screen.dart';
 import 'register_screen.dart';
 import 'authority_login_screen.dart';
-import 'authority_register_screen.dart'; // Navin file import keli
+import 'authority_register_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -33,12 +33,12 @@ class WelcomeScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 50),
+              
               // Tourist Login Button
               ElevatedButton(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    // !! ERROR THIK KELA !! - 'const' kadhun takla
                     MaterialPageRoute(builder: (context) => LoginScreen()),
                   );
                 },
@@ -49,12 +49,12 @@ class WelcomeScreen extends StatelessWidget {
                 child: const Text('Login as Tourist'),
               ),
               const SizedBox(height: 20),
+              
               // Tourist Register Button
               OutlinedButton(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    // !! ERROR THIK KELA !! - 'const' kadhun takla
                     MaterialPageRoute(builder: (context) => RegisterScreen()),
                   );
                 },
@@ -65,16 +65,16 @@ class WelcomeScreen extends StatelessWidget {
                 child: const Text('Register as Tourist'),
               ),
               const SizedBox(height: 40),
+              
               const Divider(),
               const SizedBox(height: 20),
-              // Authority sathi Register button
+              
+              // Authority Register Button
               OutlinedButton(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    // !! ERROR THIK KELA !! - 'const' kadhun takla
-                    MaterialPageRoute(
-                        builder: (context) => AuthorityRegisterScreen()),
+                    MaterialPageRoute(builder: (context) => AuthorityRegisterScreen()),
                   );
                 },
                 style: OutlinedButton.styleFrom(
@@ -84,22 +84,22 @@ class WelcomeScreen extends StatelessWidget {
                 child: const Text('Register as Authority'),
               ),
               const SizedBox(height: 10),
+              
               // Authority Login Button
               TextButton(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    // !! ERROR THIK KELA !! - 'const' kadhun takla
-                    MaterialPageRoute(
-                        builder: (context) => AuthorityLoginScreen()),
+                    MaterialPageRoute(builder: (context) => AuthorityLoginScreen()),
                   );
                 },
                 child: const Text(
                   'Login as Authority',
                   style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.deepPurple,
-                      fontWeight: FontWeight.bold),
+                    fontSize: 16,
+                    color: Colors.deepPurple,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               )
             ],
@@ -109,4 +109,3 @@ class WelcomeScreen extends StatelessWidget {
     );
   }
 }
-

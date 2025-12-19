@@ -1,12 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:vibration/vibration.dart';
-import 'tourist_detail_screen.dart';
 import 'qr_scanner_screen.dart';
+import 'tourist_detail_screen.dart';
 import 'aadhar_detail_screen.dart';
+import 'authority_settings_screen.dart';
 
 class AuthorityDashboardScreen extends StatefulWidget {
   const AuthorityDashboardScreen({super.key});
@@ -165,6 +167,19 @@ class _AuthorityDashboardScreenState extends State<AuthorityDashboardScreen>
             ),
             const Divider(),
             ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text('Settings'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AuthoritySettingsScreen(),
+                  ),
+                );
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.logout),
               title: const Text('Logout'),
               onTap: () {
@@ -231,8 +246,9 @@ class TouristListView extends StatelessWidget {
         final tourists = userSnapshot.data!.docs;
 
         return StreamBuilder<QuerySnapshot>(
-          stream:
-          FirebaseFirestore.instance.collection('live_locations').snapshots(),
+          stream: FirebaseFirestore.instance
+              .collection('live_locations')
+              .snapshots(),
           builder: (context, locationSnapshot) {
             Map<String, DocumentSnapshot> liveLocations = {};
             if (locationSnapshot.hasData) {
@@ -244,46 +260,61 @@ class TouristListView extends StatelessWidget {
             return ListView.builder(
               itemCount: tourists.length,
               itemBuilder: (context, index) {
-                final touristDoc = tourists[index];
-                final touristData = touristDoc.data() as Map<String, dynamic>;
-                final locationData =
-                liveLocations[touristDoc.id]?.data() as Map<String, dynamic>?;
+                var touristData =
+                    tourists[index].data() as Map<String, dynamic>;
+                var touristId = tourists[index].id;
+                var locationDoc = liveLocations[touristId];
 
-                Icon statusIcon;
-                String statusText = "Not Tracking";
+                String statusText = 'Inactive';
+                Color statusColor = Colors.grey;
+                Icon statusIcon =
+                    const Icon(Icons.circle, color: Colors.grey, size: 12);
 
-                if (locationData != null) {
-                  final status = locationData['status'];
-                  final timestamp =
-                  (locationData['timestamp'] as Timestamp?)?.toDate();
+                if (locationDoc != null) {
+                  var locationData = locationDoc.data() as Map<String, dynamic>;
+                  var status = locationData['status'];
 
                   if (status == 'panic') {
+                    statusText = 'PANIC';
+                    statusColor = Colors.red;
                     statusIcon =
-                    const Icon(Icons.circle, color: Colors.red, size: 16);
-                    statusText = "PANIC ALERT!";
-                  } else if (timestamp != null &&
-                      DateTime.now().difference(timestamp).inMinutes > 15) {
-                    statusIcon = const Icon(Icons.circle,
-                        color: Colors.yellow, size: 16);
-                    statusText = "Inactive / Location Off";
-                  } else {
-                    statusIcon =
-                    const Icon(Icons.circle, color: Colors.green, size: 16);
-                    statusText = "Live Tracking On";
+                        const Icon(Icons.warning, color: Colors.red, size: 12);
+                  } else if (status == 'tracking') {
+                    var timestamp =
+                        (locationData['timestamp'] as Timestamp?)?.toDate();
+                    if (timestamp != null &&
+                        DateTime.now().difference(timestamp).inMinutes > 15) {
+                      statusText = 'Inactive (Stale)';
+                      statusColor = Colors.orange;
+                      statusIcon = const Icon(Icons.circle,
+                          color: Colors.orange, size: 12);
+                    } else {
+                      statusText = 'Active';
+                      statusColor = Colors.green;
+                      statusIcon = const Icon(Icons.circle,
+                          color: Colors.green, size: 12);
+                    }
                   }
-                } else {
-                  statusIcon =
-                      Icon(Icons.circle, color: Colors.grey.shade400, size: 16);
                 }
 
                 return Card(
                   margin:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: ListTile(
                     leading: CircleAvatar(
-                      child: Text(touristData['fullName']?[0] ?? 'T'),
+                      backgroundImage: touristData['profileImage'] != null &&
+                              touristData['profileImage'].toString().isNotEmpty
+                          ? NetworkImage(touristData['profileImage'])
+                          : null,
+                      child: touristData['profileImage'] != null &&
+                              touristData['profileImage'].toString().isNotEmpty
+                          ? null
+                          : Text(touristData['fullName']?[0] ?? 'T'),
                     ),
-                    title: Text(touristData['fullName'] ?? 'No Name'),
+                    title: Text(
+                      touristData['fullName'] ?? 'Unknown',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
                     subtitle: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -291,33 +322,14 @@ class TouristListView extends StatelessWidget {
                           children: [
                             statusIcon,
                             const SizedBox(width: 8),
-                            Text(statusText),
+                            Text(statusText,
+                                style: TextStyle(color: statusColor)),
                           ],
                         ),
-                        if (touristData['phoneNumber'] != null && 
-                            touristData['phoneNumber'].toString().isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(
-                              'Phone: ${touristData['phoneNumber']}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
-                        if (touristData['aadharNumber'] != null && 
-                            touristData['aadharNumber'].toString().isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(
-                              'Aadhaar: ${touristData['aadharNumber']}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ),
+                        if (touristData['phoneNumber'] != null)
+                          Text('Phone: ${touristData['phoneNumber']}'),
+                        if (touristData['aadharNumber'] != null)
+                          Text('Aadhaar: ${touristData['aadharNumber']}'),
                       ],
                     ),
                     trailing: const Icon(Icons.chevron_right),
@@ -325,16 +337,15 @@ class TouristListView extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              TouristDetailScreen(
-                                touristData: touristData,
-                                locationData: locationData,
-                              ),
+                          builder: (context) => TouristDetailScreen(
+                            touristData: touristData,
+                            locationData:
+                                locationDoc?.data() as Map<String, dynamic>?,
+                          ),
                         ),
                       );
                     },
                     onLongPress: () {
-                      // Show bottom sheet with options
                       showModalBottomSheet(
                         context: context,
                         builder: (BuildContext context) {
@@ -352,9 +363,10 @@ class TouristListView extends StatelessWidget {
                                       MaterialPageRoute(
                                         builder: (context) =>
                                             TouristDetailScreen(
-                                              touristData: touristData,
-                                              locationData: locationData,
-                                            ),
+                                          touristData: touristData,
+                                          locationData: locationDoc?.data()
+                                              as Map<String, dynamic>?,
+                                        ),
                                       ),
                                     );
                                   },
@@ -364,8 +376,8 @@ class TouristListView extends StatelessWidget {
                                   title: const Text('Edit Tourist Info'),
                                   onTap: () {
                                     Navigator.pop(context);
-                                    // Show a dialog or screen for editing tourist info
-                                    _showEditTouristDialog(context, touristDoc, touristData);
+                                    _showEditTouristDialog(
+                                        context, tourists[index], touristData);
                                   },
                                 ),
                                 ListTile(
@@ -378,9 +390,9 @@ class TouristListView extends StatelessWidget {
                                       MaterialPageRoute(
                                         builder: (context) =>
                                             AadharDetailScreen(
-                                              userId: touristDoc.id,
-                                              isAuthorityView: true,
-                                            ),
+                                          userId: touristId,
+                                          isAuthorityView: true,
+                                        ),
                                       ),
                                     );
                                   },
@@ -401,7 +413,8 @@ class TouristListView extends StatelessWidget {
     );
   }
 
-  void _showEditTouristDialog(BuildContext context, DocumentSnapshot touristDoc, Map<String, dynamic> touristData) {
+  void _showEditTouristDialog(BuildContext context, DocumentSnapshot touristDoc,
+      Map<String, dynamic> touristData) {
     // Show a simple dialog with tourist information
     showDialog(
       context: context,
@@ -418,7 +431,8 @@ class TouristListView extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text('Phone: ${touristData['phoneNumber'] ?? 'N/A'}'),
                 const SizedBox(height: 8),
-                Text('Emergency Contact: ${touristData['emergencyContact'] ?? 'N/A'}'),
+                Text(
+                    'Emergency Contact: ${touristData['emergencyContact'] ?? 'N/A'}'),
                 const SizedBox(height: 8),
                 Text('Aadhaar: ${touristData['aadharNumber'] ?? 'N/A'}'),
               ],
@@ -442,7 +456,8 @@ class LiveMapView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('live_locations').snapshots(),
+      stream:
+          FirebaseFirestore.instance.collection('live_locations').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -462,7 +477,7 @@ class LiveMapView extends StatelessWidget {
 
         Set<Marker> markers = <Marker>{};
         List<Map<String, dynamic>> locationList = [];
-        
+
         for (var doc in snapshot.data!.docs) {
           final locationData = doc.data() as Map<String, dynamic>;
           // Add debug print to see what data we're getting
@@ -471,21 +486,27 @@ class LiveMapView extends StatelessWidget {
             'id': doc.id,
             'data': locationData,
           });
-          
-          if (locationData['latitude'] != null && locationData['longitude'] != null) {
+
+          if (locationData['latitude'] != null &&
+              locationData['longitude'] != null) {
             final lat = locationData['latitude'];
             final lon = locationData['longitude'];
             final status = locationData['status'];
 
             BitmapDescriptor markerIcon = BitmapDescriptor.defaultMarker;
             if (status == 'panic') {
-              markerIcon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
+              markerIcon = BitmapDescriptor.defaultMarkerWithHue(
+                  BitmapDescriptor.hueRed);
             } else {
-              final timestamp = (locationData['timestamp'] as Timestamp?)?.toDate();
-              if (timestamp != null && DateTime.now().difference(timestamp).inMinutes > 15) {
-                markerIcon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow);
+              final timestamp =
+                  (locationData['timestamp'] as Timestamp?)?.toDate();
+              if (timestamp != null &&
+                  DateTime.now().difference(timestamp).inMinutes > 15) {
+                markerIcon = BitmapDescriptor.defaultMarkerWithHue(
+                    BitmapDescriptor.hueYellow);
               } else {
-                markerIcon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
+                markerIcon = BitmapDescriptor.defaultMarkerWithHue(
+                    BitmapDescriptor.hueGreen);
               }
             }
 
@@ -541,7 +562,7 @@ class LiveMapView extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        
+
         if (snapshot.hasData && snapshot.data == true) {
           // Google Maps is available, show the map
           try {
@@ -570,8 +591,16 @@ class LiveMapView extends StatelessWidget {
 
   Future<bool> _checkGoogleMapsAvailability() async {
     try {
-      // This is a simple check - in a real app you might want to do a more thorough check
-      return true;
+      // Check for internet connectivity
+      try {
+        final result = await InternetAddress.lookup('google.com');
+        if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+          return true;
+        }
+      } on SocketException catch (_) {
+        return false;
+      }
+      return false;
     } catch (e) {
       return false;
     }
@@ -588,25 +617,27 @@ class LiveMapView extends StatelessWidget {
         final lon = location['longitude'];
         final name = location['touristName'] ?? 'Tourist';
         final status = location['status'] ?? 'unknown';
-        
+
         Color statusColor = Colors.grey;
         if (status == 'panic') {
           statusColor = Colors.red;
         } else if (status == 'tracking') {
           final timestamp = (location['timestamp'] as Timestamp?)?.toDate();
-          if (timestamp != null && DateTime.now().difference(timestamp).inMinutes > 15) {
+          if (timestamp != null &&
+              DateTime.now().difference(timestamp).inMinutes > 15) {
             statusColor = Colors.orange;
           } else {
             statusColor = Colors.green;
           }
         }
-        
+
         return Card(
           margin: const EdgeInsets.only(bottom: 12),
           child: ListTile(
             leading: Icon(Icons.location_on, color: statusColor),
             title: Text(name),
-            subtitle: Text('Lat: ${lat.toStringAsFixed(6)}, Lon: ${lon.toStringAsFixed(6)}'),
+            subtitle: Text(
+                'Lat: ${lat.toStringAsFixed(6)}, Lon: ${lon.toStringAsFixed(6)}'),
             trailing: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(

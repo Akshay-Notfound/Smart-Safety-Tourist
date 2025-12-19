@@ -22,3 +22,8 @@ subprojects {
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
+
+tasks.named<Wrapper>("wrapper") {
+    gradleVersion = "8.11.1"
+    distributionType = Wrapper.DistributionType.ALL
+}

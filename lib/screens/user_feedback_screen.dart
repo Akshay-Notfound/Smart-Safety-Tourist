@@ -46,7 +46,7 @@ class _UserFeedbackScreenState extends State<UserFeedbackScreen> {
 
     setState(() => _isSubmitting = true);
 
-    final success = await _feedbackService.submitFeedback(
+    final error = await _feedbackService.submitFeedback(
       feedbackType: _selectedType,
       message: _messageController.text.trim(),
       name: _nameController.text.trim().isEmpty
@@ -60,10 +60,10 @@ class _UserFeedbackScreenState extends State<UserFeedbackScreen> {
 
     setState(() => _isSubmitting = false);
 
-    if (success && mounted) {
+    if (error == null && mounted) {
       _showSuccessDialog();
     } else if (mounted) {
-      _showErrorDialog();
+      _showErrorDialog(error ?? "Unknown Error");
     }
   }
 
@@ -84,7 +84,12 @@ class _UserFeedbackScreenState extends State<UserFeedbackScreen> {
                   const Icon(Icons.check_circle, color: Colors.green, size: 32),
             ),
             const SizedBox(width: 12),
-            const Text('Thank You!'),
+            const Expanded(
+              child: Text(
+                'Thank You!',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         content: const Text(
@@ -103,7 +108,7 @@ class _UserFeedbackScreenState extends State<UserFeedbackScreen> {
     );
   }
 
-  void _showErrorDialog() {
+  void _showErrorDialog(String error) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -120,11 +125,19 @@ class _UserFeedbackScreenState extends State<UserFeedbackScreen> {
                   const Icon(Icons.error_outline, color: Colors.red, size: 32),
             ),
             const SizedBox(width: 12),
-            const Text('Submission Failed'),
+            const Expanded(
+              child: Text(
+                'Submission Failed',
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
-        content: const Text(
-          'We couldn\'t submit your feedback. Please check your internet connection and try again.',
+        content: SingleChildScrollView(
+          child: Text(
+            'We couldn\'t submit your feedback.\n\nError: $error',
+            style: const TextStyle(fontSize: 14),
+          ),
         ),
         actions: [
           TextButton(

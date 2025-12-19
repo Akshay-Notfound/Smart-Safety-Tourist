@@ -6,7 +6,8 @@ class TouristDetailScreen extends StatelessWidget {
   final Map<String, dynamic> touristData;
   final Map<String, dynamic>? locationData;
 
-  const TouristDetailScreen({super.key, required this.touristData, this.locationData});
+  const TouristDetailScreen(
+      {super.key, required this.touristData, this.locationData});
 
   @override
   Widget build(BuildContext context) {
@@ -22,33 +23,46 @@ class TouristDetailScreen extends StatelessWidget {
           children: [
             Card(
               elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Center(
                       child: CircleAvatar(
                         radius: 40,
-                        child: Text(
-                          touristData['fullName']?[0] ?? 'T',
-                          style: const TextStyle(fontSize: 24),
-                        ),
+                        backgroundImage: touristData['profileImage'] != null &&
+                                touristData['profileImage']
+                                    .toString()
+                                    .isNotEmpty
+                            ? NetworkImage(touristData['profileImage'])
+                            : null,
+                        child: touristData['profileImage'] != null &&
+                                touristData['profileImage']
+                                    .toString()
+                                    .isNotEmpty
+                            ? null
+                            : Text(
+                                touristData['fullName']?[0] ?? 'T',
+                                style: const TextStyle(fontSize: 24),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 16),
                     Center(
                       child: Text(
                         touristData['fullName'] ?? 'No Name Provided',
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 22, fontWeight: FontWeight.bold),
                       ),
                     ),
                     const SizedBox(height: 4),
                     Center(
                       child: Text(
                         touristData['email'] ?? 'No Email',
-                        style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                        style: TextStyle(
+                            fontSize: 16, color: Colors.grey.shade600),
                       ),
                     ),
                     const Divider(height: 32),
@@ -96,14 +110,13 @@ class TouristDetailScreen extends StatelessWidget {
 
   Widget _buildLocationCard(BuildContext context) {
     // If locationData is provided, show the map
-    if (locationData != null && 
-        locationData!['latitude'] != null && 
+    if (locationData != null &&
+        locationData!['latitude'] != null &&
         locationData!['longitude'] != null) {
-      
       final lat = locationData!['latitude'];
       final lon = locationData!['longitude'];
       final status = locationData!['status'] ?? 'tracking';
-      
+
       return Card(
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -114,7 +127,8 @@ class TouristDetailScreen extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.location_on, color: Colors.deepPurple.shade300, size: 28),
+                  Icon(Icons.location_on,
+                      color: Colors.deepPurple.shade300, size: 28),
                   const SizedBox(width: 16),
                   const Text(
                     'Current Location',
@@ -143,7 +157,8 @@ class TouristDetailScreen extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.location_off, color: Colors.grey.shade400, size: 28),
+                  Icon(Icons.location_off,
+                      color: Colors.grey.shade400, size: 28),
                   const SizedBox(width: 16),
                   const Text(
                     'Location Tracking',
@@ -176,7 +191,7 @@ class TouristDetailScreen extends StatelessWidget {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          
+
           if (snapshot.hasData && snapshot.data == true) {
             // Google Maps is available, show the map
             try {
@@ -270,7 +285,8 @@ class TouristDetailScreen extends StatelessWidget {
       return Colors.red;
     } else {
       final timestamp = (locationData!['timestamp'] as Timestamp?)?.toDate();
-      if (timestamp != null && DateTime.now().difference(timestamp).inMinutes > 15) {
+      if (timestamp != null &&
+          DateTime.now().difference(timestamp).inMinutes > 15) {
         return Colors.orange;
       } else {
         return Colors.green;
@@ -283,8 +299,10 @@ class TouristDetailScreen extends StatelessWidget {
       return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
     } else {
       final timestamp = (locationData!['timestamp'] as Timestamp?)?.toDate();
-      if (timestamp != null && DateTime.now().difference(timestamp).inMinutes > 15) {
-        return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow);
+      if (timestamp != null &&
+          DateTime.now().difference(timestamp).inMinutes > 15) {
+        return BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueYellow);
       } else {
         return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
       }
@@ -297,7 +315,8 @@ class TouristDetailScreen extends StatelessWidget {
         return 'PANIC ALERT!';
       case 'tracking':
         final timestamp = (locationData!['timestamp'] as Timestamp?)?.toDate();
-        if (timestamp != null && DateTime.now().difference(timestamp).inMinutes > 15) {
+        if (timestamp != null &&
+            DateTime.now().difference(timestamp).inMinutes > 15) {
           return 'Inactive (Location Off)';
         }
         return 'Live Tracking On';
@@ -319,10 +338,12 @@ class TouristDetailScreen extends StatelessWidget {
         break;
       case 'tracking':
         final timestamp = (locationData!['timestamp'] as Timestamp?)?.toDate();
-        if (timestamp != null && DateTime.now().difference(timestamp).inMinutes > 15) {
+        if (timestamp != null &&
+            DateTime.now().difference(timestamp).inMinutes > 15) {
           icon = Icons.warning;
           color = Colors.orange;
-          text = 'Location tracking is enabled but location data is stale (older than 15 minutes).';
+          text =
+              'Location tracking is enabled but location data is stale (older than 15 minutes).';
         } else {
           icon = Icons.check_circle;
           color = Colors.green;
@@ -350,8 +371,9 @@ class TouristDetailScreen extends StatelessWidget {
   }
 
   Widget _buildEmergencyContactsSection(BuildContext context) {
-    final List<dynamic>? emergencyContacts = touristData['emergencyContacts'] as List<dynamic>?;
-    
+    final List<dynamic>? emergencyContacts =
+        touristData['emergencyContacts'] as List<dynamic>?;
+
     if (emergencyContacts == null || emergencyContacts.isEmpty) {
       return Card(
         elevation: 4,
@@ -373,7 +395,7 @@ class TouristDetailScreen extends StatelessWidget {
         ),
       );
     }
-    
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -396,9 +418,11 @@ class TouristDetailScreen extends StatelessWidget {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: emergencyContacts.length,
-                  separatorBuilder: (context, index) => const Divider(height: 16),
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 16),
                   itemBuilder: (context, index) {
-                    final contact = emergencyContacts[index] as Map<String, dynamic>;
+                    final contact =
+                        emergencyContacts[index] as Map<String, dynamic>;
                     return ListTile(
                       leading: CircleAvatar(
                         backgroundColor: Colors.deepPurple.shade100,
@@ -415,7 +439,8 @@ class TouristDetailScreen extends StatelessWidget {
                           // In a real app, this would initiate a phone call
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('In a real app, this would initiate a phone call'),
+                              content: Text(
+                                  'In a real app, this would initiate a phone call'),
                               duration: Duration(seconds: 2),
                             ),
                           );
@@ -434,7 +459,7 @@ class TouristDetailScreen extends StatelessWidget {
 
   Widget _buildDocumentsSection(BuildContext context) {
     final List<dynamic>? documents = touristData['documents'] as List<dynamic>?;
-    
+
     if (documents == null || documents.isEmpty) {
       return Card(
         elevation: 4,
@@ -456,7 +481,7 @@ class TouristDetailScreen extends StatelessWidget {
         ),
       );
     }
-    
+
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -479,7 +504,8 @@ class TouristDetailScreen extends StatelessWidget {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: documents.length,
-                  separatorBuilder: (context, index) => const Divider(height: 16),
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 16),
                   itemBuilder: (context, index) {
                     final document = documents[index] as Map<String, dynamic>;
                     return ListTile(
@@ -503,7 +529,8 @@ class TouristDetailScreen extends StatelessWidget {
                       ),
                       trailing: IconButton(
                         icon: const Icon(Icons.visibility, color: Colors.blue),
-                        onPressed: () => _viewDocument(document['url'], context),
+                        onPressed: () =>
+                            _viewDocument(document['url'], context),
                       ),
                     );
                   },
@@ -518,7 +545,7 @@ class TouristDetailScreen extends StatelessWidget {
 
   String _formatDate(dynamic timestamp) {
     if (timestamp == null) return 'Unknown date';
-    
+
     try {
       final date = (timestamp as Timestamp).toDate();
       return '${date.day}/${date.month}/${date.year}';
@@ -544,7 +571,8 @@ class TouristDetailScreen extends StatelessWidget {
   }
 
   // Mahiti dakhavnyasathi helper widget
-  Widget _buildDetailRow({required IconData icon, required String title, required String value}) {
+  Widget _buildDetailRow(
+      {required IconData icon, required String title, required String value}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -561,7 +589,8 @@ class TouristDetailScreen extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 value,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
             ],
           ),

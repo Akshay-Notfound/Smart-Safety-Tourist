@@ -8,7 +8,7 @@ class WeatherInfoSheet extends StatelessWidget {
 
   IconData _getWeatherIcon(String? condition) {
     if (condition == null) return Icons.cloud_outlined;
-    
+
     switch (condition.toLowerCase()) {
       case 'clear':
         return Icons.wb_sunny;
@@ -32,7 +32,7 @@ class WeatherInfoSheet extends StatelessWidget {
 
   Color _getWeatherColor(String? condition) {
     if (condition == null) return Colors.blue;
-    
+
     switch (condition.toLowerCase()) {
       case 'clear':
         return Colors.orange;
@@ -54,8 +54,9 @@ class WeatherInfoSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final weatherService = Provider.of<WeatherService>(context);
-    
-    if (!weatherService.hasData) {
+
+    // Correctly handle Loading State
+    if (weatherService.isLoading) {
       return Container(
         margin: const EdgeInsets.all(16),
         padding: const EdgeInsets.all(24),
@@ -79,10 +80,93 @@ class WeatherInfoSheet extends StatelessWidget {
             SizedBox(height: 16),
             Text(
               'Loading weather data...',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.white,
+              style: TextStyle(fontSize: 16, color: Colors.white),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Handle Error State
+    if (weatherService.errorMessage.isNotEmpty) {
+      return Container(
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.red.shade300,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Error',
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Icon(Icons.error_outline, size: 48, color: Colors.white),
+            const SizedBox(height: 16),
+            Text(
+              weatherService.errorMessage,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16, color: Colors.white),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                final locationData = context.read<WeatherService>();
+                // We can't easily retry without lat/long here, but user can re-open.
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.red,
               ),
+              child: const Text('Close'),
+            )
+          ],
+        ),
+      );
+    }
+
+    // Handle No Data (but no error)
+    if (!weatherService.hasData) {
+      return Container(
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.blue.shade300,
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              const Text('Weather Info',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold)),
+              IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context))
+            ]),
+            const SizedBox(height: 16),
+            const Text(
+              'No weather data available.',
+              style: TextStyle(fontSize: 16, color: Colors.white),
             ),
           ],
         ),
@@ -197,7 +281,8 @@ class WeatherInfoSheet extends StatelessWidget {
             children: [
               _buildWeatherDetail(Icons.air, 'Wind', '$windSpeed km/h'),
               _buildWeatherDetail(Icons.water_drop, 'Humidity', '$humidity%'),
-              _buildWeatherDetail(Icons.visibility, 'Visibility', '$visibility km'),
+              _buildWeatherDetail(
+                  Icons.visibility, 'Visibility', '$visibility km'),
             ],
           ),
           const SizedBox(height: 16),
@@ -245,7 +330,7 @@ class WeatherInfoSheet extends StatelessWidget {
     final safetyScore = weatherService.calculateSafetyScore();
     final safetyText = weatherService.getSafetyStatusText();
     final safetyDescription = weatherService.getSafetyStatusDescription();
-    
+
     Color scoreColor;
     if (safetyScore > 75) {
       scoreColor = Colors.green;

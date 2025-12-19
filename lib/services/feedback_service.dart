@@ -6,7 +6,8 @@ class FeedbackService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   /// Submit feedback to Firebase Firestore
-  Future<bool> submitFeedback({
+  /// Returns null if successful, or error message if failed
+  Future<String?> submitFeedback({
     required String feedbackType,
     required String message,
     String? name,
@@ -33,10 +34,10 @@ class FeedbackService {
       // Submit to Firestore
       await _firestore.collection('feedbacks').add(feedbackData);
 
-      return true;
+      return null; // Success
     } catch (e) {
       print('Error submitting feedback: $e');
-      return false;
+      return e.toString(); // Return actual error
     }
   }
 

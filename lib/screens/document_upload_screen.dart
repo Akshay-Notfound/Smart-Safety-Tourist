@@ -1,11 +1,16 @@
-import 'dart:io';
+// import 'dart:io'; // Removed for Web compatibility
 import 'dart:async';
+// import 'dart:io' show InternetAddress; // Removed for Web compatibility
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/cloudinary_service.dart';
+
 import 'aadhar_detail_screen.dart';
+
+// Enum for storage service options
+enum StorageService { cloudinary, firebase }
 
 class DocumentUploadScreen extends StatefulWidget {
   const DocumentUploadScreen({super.key});
@@ -19,6 +24,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
   List<Map<String, dynamic>> _documents = [];
   bool _isLoading = true;
   bool _isUploading = false;
+  bool _useFirebaseStorage = false; // Toggle for storage service
   final ImagePicker _picker = ImagePicker();
   final _aadharController = TextEditingController();
   String? _aadharNumber;
@@ -32,14 +38,14 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
 
   Future<void> _fetchAadharNumber() async {
     if (user == null) return;
-    
+
     try {
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user!.uid)
           .get()
           .timeout(const Duration(seconds: 10));
-          
+
       if (userDoc.exists && userDoc.data()!.containsKey('aadharNumber')) {
         setState(() {
           _aadharNumber = userDoc.data()!['aadharNumber'];
@@ -53,17 +59,18 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
 
   Future<void> _fetchDocuments() async {
     if (user == null) return;
-    
+
     try {
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user!.uid)
           .get()
           .timeout(const Duration(seconds: 10));
-          
+
       if (userDoc.exists && userDoc.data()!.containsKey('documents')) {
         setState(() {
-          _documents = List<Map<String, dynamic>>.from(userDoc.data()!['documents']);
+          _documents =
+              List<Map<String, dynamic>>.from(userDoc.data()!['documents']);
           _isLoading = false;
         });
       } else {
@@ -71,19 +78,6 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
           _isLoading = false;
         });
       }
-    } on SocketException catch (e) {
-      print('Network error fetching documents: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Network error. Please check your connection.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-      setState(() {
-        _isLoading = false;
-      });
     } on TimeoutException catch (e) {
       print('Timeout error fetching documents: $e');
       if (mounted) {
@@ -115,24 +109,11 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
 
   Future<void> _updateDocumentsInFirestore() async {
     if (user == null) return;
-    
+
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user!.uid)
-          .set({
+      await FirebaseFirestore.instance.collection('users').doc(user!.uid).set({
         'documents': _documents,
       }, SetOptions(merge: true));
-    } on SocketException catch (e) {
-      print('Network error updating documents: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Network error. Please check your connection and try again.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
     } on TimeoutException catch (e) {
       print('Timeout error updating documents: $e');
       if (mounted) {
@@ -158,19 +139,16 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
 
   Future<void> _saveAadharNumber() async {
     if (user == null) return;
-    
+
     try {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user!.uid)
-          .set({
+      await FirebaseFirestore.instance.collection('users').doc(user!.uid).set({
         'aadharNumber': _aadharController.text.trim(),
       }, SetOptions(merge: true));
-      
+
       setState(() {
         _aadharNumber = _aadharController.text.trim();
       });
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -193,62 +171,47 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
   }
 
   Future<void> _pickAndUploadDocument() async {
+    if (_useFirebaseStorage) {
+      await _pickAndUploadDocumentWithFirebase();
+    } else {
+      await _pickAndUploadDocumentWithCloudinary();
+    }
+  }
+
+  Future<void> _pickAndUploadDocumentWithCloudinary() async {
     try {
       final XFile? image = await _picker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 80,
       );
-      
+
       if (image != null) {
         setState(() {
           _isUploading = true;
         });
-        
-        // Check internet connectivity before upload
-        try {
-          final result = await InternetAddress.lookup('google.com');
-          if (result.isEmpty || result[0].rawAddress.isEmpty) {
-            _handleUploadError('No internet connection. Please check your network.');
-            return;
-          }
-        } on SocketException catch (_) {
-          _handleUploadError('No internet connection. Please check your network.');
-          return;
-        }
-        
+
         // Upload to Cloudinary
-        final file = File(image.path);
-        final response = await CloudinaryService.uploadFile(file).timeout(
-          const Duration(seconds: 45),
-          onTimeout: () {
-            throw TimeoutException('Cloudinary upload timeout', const Duration(seconds: 45));
-          },
-        );
-        
+        final response = await CloudinaryService.uploadFile(image);
+
         if (response != null) {
-          final secureUrl = CloudinaryService.getSecureUrl(response);
-          final publicId = CloudinaryService.getPublicId(response);
-          
-          print('Cloudinary response - secureUrl: $secureUrl, publicId: $publicId');
-          
-          if (secureUrl != null && publicId != null) {
+          final downloadUrl = CloudinaryService.getSecureUrl(response);
+          if (downloadUrl != null) {
             // Add to documents list
             final newDocument = {
               'name': image.name,
-              'url': secureUrl,
-              'publicId': publicId,
+              'url': downloadUrl,
               'uploadedAt': FieldValue.serverTimestamp(),
               'type': 'ID Document',
             };
-            
+
             setState(() {
               _documents.add(newDocument);
               _isUploading = false;
             });
-            
+
             // Save to Firestore
             await _updateDocumentsInFirestore();
-            
+
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
@@ -258,20 +221,84 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
               );
             }
           } else {
-            print('Missing required data in Cloudinary response');
-            print('Full response: $response');
-            _handleUploadError('Upload completed but missing required data. Please check the uploaded file and try again.');
+            _handleUploadError(
+                'Failed to get download URL from Cloudinary. Please try again.');
           }
         } else {
-          _handleUploadError('Failed to upload document. Please check your internet connection and Cloudinary configuration. Make sure your preset name "Smart_Tourist_App" is correct.');
+          _handleUploadError(
+              'Failed to upload document to Cloudinary. Please try again.');
         }
       }
-    } on SocketException catch (e) {
-      print('Network error during document upload: $e');
-      _handleUploadError('Network error. Please check your internet connection and try again.');
     } on TimeoutException catch (e) {
       print('Timeout during document upload: $e');
-      _handleUploadError('Upload timed out. Please check your internet connection and try again.');
+      _handleUploadError(
+          'Upload timed out. Please check your internet connection and try again.');
+    } catch (e) {
+      print('Error uploading document: $e');
+      _handleUploadError('An error occurred during upload. Please try again.');
+    }
+  }
+
+  Future<void> _pickAndUploadDocumentWithFirebase() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        setState(() {
+          _isUploading = true;
+        });
+
+        // Temporary Web workaround: Firebase upload disabled
+        _handleUploadError(
+            'Firebase upload not supported on Web yet. Please use Cloudinary.');
+        return;
+
+        /*
+        // Upload to Firebase Storage
+        final file = File(image.path);
+        final fileName =
+            '${DateTime.now().millisecondsSinceEpoch}_${image.name}';
+        final downloadUrl =
+            await FirebaseStorageService.uploadDocument(file, fileName);
+
+        if (downloadUrl != null) {
+          // Add to documents list
+          final newDocument = {
+            'name': image.name,
+            'url': downloadUrl,
+            'uploadedAt': FieldValue.serverTimestamp(),
+            'type': 'ID Document',
+          };
+
+          setState(() {
+            _documents.add(newDocument);
+            _isUploading = false;
+          });
+
+          // Save to Firestore
+          await _updateDocumentsInFirestore();
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Document uploaded successfully!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else {
+          _handleUploadError(
+              'Failed to upload document to Firebase Storage. Please try again.');
+        }
+        */
+      }
+    } on TimeoutException catch (e) {
+      print('Timeout during document upload: $e');
+      _handleUploadError(
+          'Upload timed out. Please check your internet connection and try again.');
     } catch (e) {
       print('Error uploading document: $e');
       _handleUploadError('An error occurred during upload. Please try again.');
@@ -282,7 +309,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
     setState(() {
       _isUploading = false;
     });
-    
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -297,7 +324,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
     setState(() {
       _documents.removeAt(index);
     });
-    
+
     _updateDocumentsInFirestore().then((_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -328,6 +355,25 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
       appBar: AppBar(
         title: const Text('Document Upload'),
         backgroundColor: Colors.deepPurple.shade400,
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (String result) {
+              setState(() {
+                _useFirebaseStorage = result == 'firebase';
+              });
+            },
+            itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+              const PopupMenuItem<String>(
+                value: 'cloudinary',
+                child: Text('Use Cloudinary'),
+              ),
+              const PopupMenuItem<String>(
+                value: 'firebase',
+                child: Text('Use Firebase Storage'),
+              ),
+            ],
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -352,7 +398,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Aadhaar number input section
                   Card(
                     elevation: 2,
@@ -396,11 +442,13 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                               label: const Text('Save Aadhaar Number'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.deepPurple,
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 12),
                               ),
                             ),
                           ),
-                          if (_aadharNumber != null && _aadharNumber!.isNotEmpty) ...[
+                          if (_aadharNumber != null &&
+                              _aadharNumber!.isNotEmpty) ...[
                             const SizedBox(height: 16),
                             Container(
                               padding: const EdgeInsets.all(12),
@@ -411,7 +459,8 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.check_circle, color: Colors.green),
+                                  const Icon(Icons.check_circle,
+                                      color: Colors.green),
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Text(
@@ -441,7 +490,8 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                                 icon: const Icon(Icons.visibility),
                                 label: const Text('View Aadhaar Details'),
                                 style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 24, vertical: 12),
                                 ),
                               ),
                             ),
@@ -450,33 +500,36 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Upload button
                   Center(
                     child: ElevatedButton.icon(
                       onPressed: _isUploading ? null : _pickAndUploadDocument,
-                      icon: _isUploading 
+                      icon: _isUploading
                           ? const SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                valueColor:
+                                    AlwaysStoppedAnimation<Color>(Colors.white),
                               ),
                             )
                           : const Icon(Icons.upload_file),
-                      label: Text(_isUploading ? 'Uploading...' : 'Upload Document'),
+                      label: Text(
+                          _isUploading ? 'Uploading...' : 'Upload Document'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.deepPurple,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 16),
                       ),
                     ),
                   ),
-                  
+
                   const SizedBox(height: 24),
-                  
+
                   // Documents list
                   const Text(
                     'Uploaded Documents',
@@ -486,7 +539,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   _documents.isEmpty
                       ? Container(
                           padding: const EdgeInsets.all(24),
@@ -550,11 +603,14 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       IconButton(
-                                        icon: const Icon(Icons.visibility, color: Colors.blue),
-                                        onPressed: () => _viewDocument(document['url']),
+                                        icon: const Icon(Icons.visibility,
+                                            color: Colors.blue),
+                                        onPressed: () =>
+                                            _viewDocument(document['url']),
                                       ),
                                       IconButton(
-                                        icon: const Icon(Icons.delete, color: Colors.red),
+                                        icon: const Icon(Icons.delete,
+                                            color: Colors.red),
                                         onPressed: () => _deleteDocument(index),
                                       ),
                                     ],
@@ -572,7 +628,7 @@ class _DocumentUploadScreenState extends State<DocumentUploadScreen> {
 
   String _formatDate(dynamic timestamp) {
     if (timestamp == null) return 'Unknown date';
-    
+
     try {
       final date = (timestamp as Timestamp).toDate();
       return '${date.day}/${date.month}/${date.year}';

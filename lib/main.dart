@@ -2,9 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:device_preview_plus/device_preview_plus.dart';
-import 'package:flutter/foundation.dart';
+
+import 'package:provider/provider.dart';
 import 'firebase_options.dart';
+import 'services/theme_provider.dart';
+import 'services/weather_service.dart';
 
 import 'screens/home_screen.dart';
 import 'screens/welcome_screen.dart';
@@ -17,9 +19,12 @@ void main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   runApp(
-    DevicePreview(
-      enabled: !kReleaseMode,
-      builder: (context) => const MyApp(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => WeatherService()),
+      ],
+      child: const MyApp(),
     ),
   );
 }
@@ -29,17 +34,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return MaterialApp(
-      useInheritedMediaQuery: true,
-      locale: DevicePreview.locale(context),
-      builder: DevicePreview.appBuilder,
       debugShowCheckedModeBanner: false,
       title: 'Smart Tourist Safety',
-      theme: ThemeData(
-        primarySwatch: Colors.deepPurple,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      home: const AuthWrapper(), // Use AuthWrapper instead of AppWrapper
+      theme: themeProvider.lightTheme,
+      darkTheme: themeProvider.darkTheme,
+      themeMode: themeProvider.themeMode,
+      home: const AuthWrapper(),
     );
   }
 }
@@ -67,7 +70,8 @@ class AuthWrapper extends StatelessWidget {
               .timeout(const Duration(seconds: 10)),
           builder: (context, userDocSnapshot) {
             if (userDocSnapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(body: Center(child: CircularProgressIndicator()));
+              return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()));
             }
             if (!userDocSnapshot.hasData || !userDocSnapshot.data!.exists) {
               // Jar kahi karanane user cha data milala nahi, tar logout karu
@@ -77,7 +81,8 @@ class AuthWrapper extends StatelessWidget {
               return const WelcomeScreen();
             }
 
-            final userData = userDocSnapshot.data!.data() as Map<String, dynamic>;
+            final userData =
+                userDocSnapshot.data!.data() as Map<String, dynamic>;
             final role = userData['role'];
 
             // Role nusar screen dakhav
