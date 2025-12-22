@@ -8,6 +8,9 @@ import 'package:provider/provider.dart';
 import 'package:smart_tourist_app/services/weather_service.dart';
 import 'digital_id_screen.dart';
 // !! NAVIN FILES IMPORT KELYA !!
+// !! NAVIN FILES IMPORT KELYA !!
+import 'package:smart_tourist_app/services/version_check_service.dart';
+import 'package:smart_tourist_app/widgets/update_dialog.dart';
 import 'itinerary_screen.dart';
 import 'emergency_contacts_screen.dart';
 import 'document_upload_screen.dart';
@@ -16,6 +19,7 @@ import 'edit_profile_screen.dart';
 import 'weather_info_sheet.dart';
 import 'settings_screen.dart';
 import 'smart_assistant_screen.dart';
+import 'chat_screen.dart';
 import 'package:smart_tourist_app/services/logout_service.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -43,6 +47,26 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _initializeScreen();
+    _checkForUpdates();
+  }
+
+  Future<void> _checkForUpdates() async {
+    final versionService = VersionCheckService();
+    final updateInfo = await versionService.checkVersion();
+
+    if (updateInfo != null && updateInfo['updateAvailable'] == true) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => UpdateDialog(
+            latestVersion: updateInfo['latestVersion'],
+            apkUrl: updateInfo['apkUrl'],
+            changes: updateInfo['changes'],
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -431,6 +455,26 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             const Divider(),
+            ListTile(
+              leading: const Icon(Icons.chat_bubble_outline),
+              title: const Text('Community Chat'),
+              onTap: () {
+                Navigator.pop(context);
+                if (userData != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChatScreen(userData: userData!),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: Text('Please wait for user data to load')),
+                  );
+                }
+              },
+            ),
             ListTile(
               leading: const Icon(Icons.shield_outlined),
               title: const Text('Safety Status'),

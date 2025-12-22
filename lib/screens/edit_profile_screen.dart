@@ -26,6 +26,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _aadharController;
 
   bool _isSaving = false;
+  bool _isAuthority = false;
   XFile? _profileImage;
   String? _profileImageUrl;
   final ImagePicker _picker = ImagePicker();
@@ -33,16 +34,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
+    _isAuthority = widget.userData['role'] == 'authority';
+
     _nameController =
         TextEditingController(text: widget.userData['fullName'] ?? '');
     _emailController =
         TextEditingController(text: widget.userData['email'] ?? '');
     _phoneController =
         TextEditingController(text: widget.userData['phoneNumber'] ?? '');
-    _emergencyController =
-        TextEditingController(text: widget.userData['emergencyContact'] ?? '');
-    _aadharController =
-        TextEditingController(text: widget.userData['aadharNumber'] ?? '');
+
+    // For authority, reuse controllers but map to different fields
+    _emergencyController = TextEditingController(
+        text: _isAuthority
+            ? (widget.userData['designation'] ?? '')
+            : (widget.userData['emergencyContact'] ?? ''));
+
+    _aadharController = TextEditingController(
+        text: _isAuthority
+            ? (widget.userData['authorityId'] ?? '')
+            : (widget.userData['aadharNumber'] ?? ''));
+
     _profileImageUrl = widget.userData['profileImage'] ?? '';
   }
 
@@ -214,9 +225,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         'fullName': _nameController.text.trim(),
         'email': _emailController.text.trim(),
         'phoneNumber': _phoneController.text.trim(),
-        'emergencyContact': _emergencyController.text.trim(),
-        'aadharNumber': _aadharController.text.trim(),
       };
+
+      if (_isAuthority) {
+        updateData['designation'] = _emergencyController.text.trim();
+        updateData['authorityId'] = _aadharController.text.trim();
+      } else {
+        updateData['emergencyContact'] = _emergencyController.text.trim();
+        updateData['aadharNumber'] = _aadharController.text.trim();
+      }
 
       // Add profile image URL if available
       if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
@@ -277,9 +294,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Personal Information',
-                style: TextStyle(
+              Text(
+                _isAuthority ? 'Authority Profile' : 'Personal Information',
+                style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
                 ),
@@ -481,37 +498,46 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Emergency Contact Field
+              // Emergency Contact / Designation Field
               TextFormField(
                 controller: _emergencyController,
                 decoration: InputDecoration(
-                  labelText: 'Emergency Contact',
-                  prefixIcon: const Icon(Icons.contact_phone_outlined),
+                  labelText: _isAuthority
+                      ? 'Designation / Division'
+                      : 'Emergency Contact',
+                  prefixIcon: Icon(_isAuthority
+                      ? Icons.work_outline
+                      : Icons.contact_phone_outlined),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                keyboardType: TextInputType.phone,
+                keyboardType:
+                    _isAuthority ? TextInputType.text : TextInputType.phone,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return 'Please enter emergency contact';
+                    return _isAuthority
+                        ? 'Please enter designation'
+                        : 'Please enter emergency contact';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 16),
 
-              // Aadhaar Number Field
+              // Aadhaar / Authority ID Field
               TextFormField(
                 controller: _aadharController,
                 decoration: InputDecoration(
-                  labelText: 'Aadhaar / Passport Number',
+                  labelText: _isAuthority
+                      ? 'Authority Badge ID'
+                      : 'Aadhaar / Passport Number',
                   prefixIcon: const Icon(Icons.badge_outlined),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                keyboardType: TextInputType.number,
+                keyboardType: TextInputType.text, // Allow text for IDs
               ),
               const SizedBox(height: 32),
 

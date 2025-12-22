@@ -9,6 +9,8 @@ import 'qr_scanner_screen.dart';
 import 'tourist_detail_screen.dart';
 import 'aadhar_detail_screen.dart';
 import 'authority_settings_screen.dart';
+import 'chat_screen.dart';
+import 'edit_profile_screen.dart';
 
 class AuthorityDashboardScreen extends StatefulWidget {
   const AuthorityDashboardScreen({super.key});
@@ -86,41 +88,75 @@ class _AuthorityDashboardScreenState extends State<AuthorityDashboardScreen>
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.deepPurple.shade400,
-              ),
-              child: const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.white,
-                    child: Icon(
-                      Icons.admin_panel_settings,
-                      size: 30,
-                      color: Colors.deepPurple,
+            StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(FirebaseAuth.instance.currentUser?.uid)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                String userName = 'Authority';
+                String email = 'Admin Dashboard';
+                String? profileImage;
+                Map<String, dynamic> userData = {};
+
+                if (snapshot.hasData && snapshot.data!.exists) {
+                  userData = snapshot.data!.data() as Map<String, dynamic>;
+                  userName = userData['fullName'] ?? 'Authority';
+                  email = userData['email'] ?? 'Admin Dashboard';
+                  profileImage = userData['profileImage'];
+                }
+
+                return UserAccountsDrawerHeader(
+                  decoration: BoxDecoration(
+                    color: Colors.deepPurple.shade400,
+                  ),
+                  accountName: Text(userName,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  accountEmail: Text(email),
+                  currentAccountPicture: GestureDetector(
+                    onTap: () {
+                      if (userData.isNotEmpty) {
+                        Navigator.pop(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                EditProfileScreen(userData: userData),
+                          ),
+                        );
+                      }
+                    },
+                    child: CircleAvatar(
+                      backgroundColor: Colors.white,
+                      backgroundImage:
+                          profileImage != null && profileImage.isNotEmpty
+                              ? NetworkImage(profileImage)
+                              : null,
+                      child: profileImage != null && profileImage.isNotEmpty
+                          ? null
+                          : Text(
+                              userName.isNotEmpty
+                                  ? userName[0].toUpperCase()
+                                  : 'A',
+                              style: const TextStyle(
+                                  fontSize: 24, color: Colors.deepPurple),
+                            ),
                     ),
                   ),
-                  SizedBox(height: 10),
-                  Text(
-                    'Authority Panel',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    'Admin Dashboard',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
+                  onDetailsPressed: () {
+                    if (userData.isNotEmpty) {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              EditProfileScreen(userData: userData),
+                        ),
+                      );
+                    }
+                  },
+                );
+              },
             ),
             ListTile(
               leading: const Icon(Icons.list),
@@ -152,6 +188,38 @@ class _AuthorityDashboardScreenState extends State<AuthorityDashboardScreen>
             ),
             const Divider(),
             ListTile(
+              leading: const Icon(Icons.chat_bubble_outline),
+              title: const Text('Community Chat'),
+              onTap: () async {
+                Navigator.pop(context);
+                final user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  // Fetch authority details to pass to chat
+                  try {
+                    final doc = await FirebaseFirestore.instance
+                        .collection('users')
+                        .doc(user.uid)
+                        .get();
+                    if (doc.exists) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChatScreen(
+                              userData: doc.data() as Map<String, dynamic>),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          content: Text('User profile not found')));
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(SnackBar(content: Text('Error: $e')));
+                  }
+                }
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.notifications_active),
               title: const Text('Panic Alerts'),
               onTap: () {
@@ -166,6 +234,29 @@ class _AuthorityDashboardScreenState extends State<AuthorityDashboardScreen>
               },
             ),
             const Divider(),
+            ListTile(
+              leading: const Icon(Icons.edit),
+              title: const Text('Edit Profile'),
+              onTap: () async {
+                Navigator.pop(context);
+                final user = FirebaseAuth.instance.currentUser;
+                if (user != null) {
+                  final doc = await FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(user.uid)
+                      .get();
+                  if (doc.exists) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EditProfileScreen(
+                            userData: doc.data() as Map<String, dynamic>),
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
             ListTile(
               leading: const Icon(Icons.settings),
               title: const Text('Settings'),

@@ -46,3 +46,11 @@ app.*.map.json
 
 # OpenMemory - IDE/Assistant specific rules
 .qoder\rules\openmemory.md
+
+/android/app/build/
+/android/build/
+**/.gradle/
+
+/android/app/build/
+/android/build/
+**/.gradle/

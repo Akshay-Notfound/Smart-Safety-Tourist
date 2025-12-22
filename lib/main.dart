@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
@@ -14,19 +17,44 @@ import 'screens/authority_dashboard_screen.dart';
 import 'screens/splash_screen.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => WeatherService()),
-      ],
-      child: const MyApp(),
-    ),
-  );
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      print("✅ Firebase Initialized successfully");
+    } catch (e) {
+      print("❌ Firebase Initialization Error: $e");
+    }
+
+    try {
+      // Initialize App Check
+      await FirebaseAppCheck.instance.activate(
+        androidProvider:
+            kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+        appleProvider:
+            kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
+      );
+      print("✅ App Check Activated successfully");
+    } catch (e) {
+      print("❌ App Check Activation Error: $e");
+    }
+
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => ThemeProvider()),
+          ChangeNotifierProvider(create: (_) => WeatherService()),
+        ],
+        child: const MyApp(),
+      ),
+    );
+  }, (error, stack) {
+    print("❌ Uncaught Error in runZonedGuarded: $error");
+    print(stack);
+  });
 }
 
 class MyApp extends StatelessWidget {
