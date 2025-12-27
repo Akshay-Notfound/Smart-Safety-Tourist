@@ -11,44 +11,47 @@ class LogoutService {
     final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
     final isDarkMode = themeProvider.isDarkMode;
 
+    // Professional/Command Center Theme Colors
+    final bgColor =
+        isDarkMode ? const Color(0xFF1E293B) : Colors.white; // Slate 800
+    final textColor =
+        isDarkMode ? const Color(0xFFF1F5F9) : const Color(0xFF0F172A);
+    final accentColor = const Color(0xFFF59E0B); // Amber for Warning
+    final dangerColor = const Color(0xFFEF4444); // Red for Logout
+
     return showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          backgroundColor: isDarkMode ? const Color(0xFF1D2640) : Colors.white,
+          backgroundColor: bgColor,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(4), // Sharp corners
+            side: isDarkMode
+                ? BorderSide(color: Colors.white12)
+                : BorderSide.none,
           ),
           title: Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF4B3F9E).withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.logout_outlined,
-                  color: Color(0xFF4B3F9E),
-                  size: 24,
-                ),
-              ),
+              Icon(Icons.warning_amber_rounded, color: accentColor, size: 28),
               const SizedBox(width: 12),
-              Text(
-                'Logout',
-                style: TextStyle(
-                  color: isDarkMode ? Colors.white : Colors.black87,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
+              Expanded(
+                child: Text(
+                  'TERMINATE SESSION?',
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
                 ),
               ),
             ],
           ),
           content: Text(
-            'Are you sure you want to log out?\nYou will need to sign in again to access your account.',
+            'Secure connection will be closed. You will need to re-authenticate to access the system.',
             style: TextStyle(
-              color: isDarkMode ? Colors.white70 : Colors.grey[700],
-              fontSize: 15,
+              color: textColor.withOpacity(0.8),
+              fontSize: 14,
               height: 1.5,
             ),
           ),
@@ -56,10 +59,11 @@ class LogoutService {
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(
-                'Cancel',
+                'CANCEL',
                 style: TextStyle(
-                  color: isDarkMode ? Colors.white70 : Colors.grey[600],
-                  fontSize: 16,
+                  color: textColor.withOpacity(0.6),
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
                 ),
               ),
             ),
@@ -69,19 +73,21 @@ class LogoutService {
                 performLogout(context);
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF4B3F9E),
+                backgroundColor: dangerColor,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 padding:
                     const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                elevation: 0,
               ),
               child: const Text(
-                'Logout',
+                'TERMINATE',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
                 ),
               ),
             ),
@@ -98,8 +104,8 @@ class LogoutService {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (context) => Center(
-          child: CircularProgressIndicator(color: Color(0xFF4B3F9E)),
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(color: Color(0xFFF59E0B)), // Amber
         ),
       );
 
@@ -131,21 +137,31 @@ class LogoutService {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Row(
-              children: [
+            backgroundColor: const Color(0xFF1E293B),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4),
+              side: const BorderSide(color: Colors.red, width: 1),
+            ),
+            title: Row(
+              children: const [
                 Icon(Icons.error_outline, color: Colors.red),
                 SizedBox(width: 12),
-                Text('Logout Failed'),
+                Text('SYSTEM ERROR',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2)),
               ],
             ),
-            content:
-                Text('An error occurred while logging out: ${e.toString()}'),
+            content: Text(
+              'Logout sequence failed: ${e.toString()}',
+              style: const TextStyle(color: Colors.white70),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('OK'),
+                child: const Text('ACKNOWLEDGE',
+                    style: TextStyle(color: Colors.red)),
               ),
             ],
           ),
