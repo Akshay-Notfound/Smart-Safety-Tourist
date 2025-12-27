@@ -78,12 +78,14 @@ class _UserFeedbackScreenState extends State<UserFeedbackScreen> {
           children: [
             Icon(Icons.check_circle, color: Colors.green, size: 24),
             SizedBox(width: 12),
-            Text('TRANSMISSION COMPLETE',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2)),
+            Expanded(
+              child: Text('TRANSMISSION COMPLETE',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2)),
+            ),
           ],
         ),
         content: Text(
@@ -114,12 +116,14 @@ class _UserFeedbackScreenState extends State<UserFeedbackScreen> {
           children: [
             Icon(Icons.error_outline, color: Colors.red, size: 24),
             SizedBox(width: 12),
-            Text('TRANSMISSION FAILED',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2)),
+            Expanded(
+              child: Text('TRANSMISSION FAILED',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2)),
+            ),
           ],
         ),
         content:
