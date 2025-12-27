@@ -9,8 +9,24 @@ class GeminiService {
 
   GeminiService() {
     _model = GenerativeModel(
-      model: 'gemini-pro',
+      model: 'gemini-2.0-flash',
       apiKey: _apiKey,
+      systemInstruction: Content.system(
+          'You are the Smart Travel Assistant for the Smart Safety Tourist App. '
+          'Your goal is to help tourists with safety, travel plans, and explaining app features. '
+          'Key Features you know about: '
+          '1. Safety Status: ML-based safety rating (0-100) for locations. '
+          '2. Fake Document Detection: Checks for fake IDs. '
+          '3. Real-time Weather: Live updates. '
+          '4. Emergency: Panic button and trusted contacts. '
+          '5. Live Tracking: Share live location with family. '
+          'Always be helpful, concise, and prioritize safety.'),
+      safetySettings: [
+        SafetySetting(HarmCategory.harassment, HarmBlockThreshold.none),
+        SafetySetting(HarmCategory.hateSpeech, HarmBlockThreshold.none),
+        SafetySetting(HarmCategory.sexuallyExplicit, HarmBlockThreshold.none),
+        SafetySetting(HarmCategory.dangerousContent, HarmBlockThreshold.none),
+      ],
     );
     _chatSession = _model.startChat();
   }
@@ -25,7 +41,8 @@ class GeminiService {
           e.toString().contains('PERMISSION_DENIED')) {
         return "Error: API Key Restricted. Please remove Android restrictions in Google Cloud Console.";
       }
-      return "I'm having trouble connecting to the AI. Please try again later.";
+      // Return the actual error for debugging purposes
+      return "AI Connection Error: ${e.toString()}";
     }
   }
 }

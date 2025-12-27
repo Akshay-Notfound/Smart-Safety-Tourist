@@ -22,18 +22,21 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
   Future<void> _fetchTouristAndShowDetails(String userId) async {
     try {
       // Firestore madhun tourist cha data shodhu
-      final doc =
-      await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
 
       if (doc.exists && mounted) {
         final touristData = doc.data() as Map<String, dynamic>;
-        
+        touristData['uid'] = userId; // Inject UID for updates
+
         // Also fetch location data for this tourist
         final locationDoc = await FirebaseFirestore.instance
             .collection('live_locations')
             .doc(userId)
             .get();
-        
+
         Map<String, dynamic>? locationData;
         if (locationDoc.exists) {
           locationData = locationDoc.data() as Map<String, dynamic>;
@@ -87,7 +90,7 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                 final String code = capture.barcodes.first.rawValue ?? "---";
                 setState(() {
                   _isScanCompleted =
-                  true; // Jevha ek code scan hoil, tevha parat scan karu naye
+                      true; // Jevha ek code scan hoil, tevha parat scan karu naye
                 });
                 _fetchTouristAndShowDetails(code);
               }

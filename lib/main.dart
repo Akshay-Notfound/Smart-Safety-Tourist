@@ -70,7 +70,9 @@ class MyApp extends StatelessWidget {
       theme: themeProvider.lightTheme,
       darkTheme: themeProvider.darkTheme,
       themeMode: themeProvider.themeMode,
-      home: const AuthWrapper(),
+      home: const SplashScreen(
+        nextScreen: AuthWrapper(),
+      ),
     );
   }
 }

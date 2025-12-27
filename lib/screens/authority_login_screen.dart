@@ -24,7 +24,10 @@ class _AuthorityLoginScreenState extends State<AuthorityLoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
       );
-      // Login zalyanantar, main.dart madhla logic tyala barobar dashboard var pathvel
+      // Login successful, clear navigation stack to go back to AuthWrapper
+      if (mounted) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
     } on FirebaseAuthException catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -59,8 +62,8 @@ class _AuthorityLoginScreenState extends State<AuthorityLoginScreen> {
               Text(
                 'Official Portal',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
               const SizedBox(height: 8),
               const Text('Enter your official credentials'),
@@ -88,19 +91,20 @@ class _AuthorityLoginScreenState extends State<AuthorityLoginScreen> {
               _isLoading
                   ? const CircularProgressIndicator()
                   : ElevatedButton(
-                onPressed: _login,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                child: const Text('Login'),
-              ),
+                      onPressed: _login,
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                      child: const Text('Login'),
+                    ),
               const SizedBox(height: 20),
               // !! BADAL KELA !! - Register sathi link add keli
               TextButton(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const AuthorityRegisterScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => const AuthorityRegisterScreen()),
                   );
                 },
                 child: const Text("Don't have an account? Register Here"),
@@ -112,4 +116,3 @@ class _AuthorityLoginScreenState extends State<AuthorityLoginScreen> {
     );
   }
 }
-

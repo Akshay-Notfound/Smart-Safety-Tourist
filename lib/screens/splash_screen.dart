@@ -1,100 +1,134 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class SplashScreen extends StatefulWidget {
-  final Function(String role) onInitializationComplete;
+  final Widget nextScreen;
 
-  const SplashScreen({super.key, required this.onInitializationComplete});
+  const SplashScreen({super.key, required this.nextScreen});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  State<SplashScreen> createState() => _EnhancedSplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _EnhancedSplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
-  String _loadingText = 'Initializing app...';
+  late AnimationController _controller;
+
+  // Animation Definitions
+  late Animation<double> _logoScaleAnimation;
+  late Animation<double> _logoFadeAnimation;
+  late Animation<Offset> _titleSlideAnimation;
+  late Animation<double> _titleFadeAnimation;
+  late Animation<Offset> _subtitleSlideAnimation;
+  late Animation<double> _subtitleFadeAnimation;
+  late Animation<double> _loadingFadeAnimation;
 
   @override
   void initState() {
     super.initState();
     _initializeAnimations();
-    _initializeApp();
+    _startNavigationTimer();
   }
 
   void _initializeAnimations() {
-    _animationController = AnimationController(
-      duration: const Duration(seconds: 2), // Animation duration
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 2500),
       vsync: this,
     );
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+    // 1. Logo Animation (0.0 - 0.5)
+    // Elastic pop-in effect
+    _logoScaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.5, curve: Curves.elasticOut),
+      ),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
+    _logoFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.3, curve: Curves.easeIn),
+      ),
     );
 
-    _animationController.forward();
+    // 2. Title Animation (0.4 - 0.7)
+    // Slide up and fade in
+    _titleSlideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero)
+            .animate(CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.4, 0.7, curve: Curves.easeOutBack),
+    ));
+
+    _titleFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.4, 0.6, curve: Curves.easeIn),
+      ),
+    );
+
+    // 3. Subtitle Animation (0.6 - 0.9)
+    // Slide up and fade in (slightly later)
+    _subtitleSlideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero)
+            .animate(CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.6, 0.9, curve: Curves.easeOutQuad),
+    ));
+
+    _subtitleFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.6, 0.8, curve: Curves.easeIn),
+      ),
+    );
+
+    // 4. Loading Indicator (0.8 - 1.0)
+    _loadingFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.8, 1.0, curve: Curves.easeIn),
+      ),
+    );
+
+    _controller.forward();
   }
 
-  Future<void> _initializeApp() async {
-    try {
-      setState(() {
-        _loadingText = 'Checking authentication...';
-      });
-      
-      // Wait for animations to complete (2 seconds)
-      await Future.delayed(const Duration(seconds: 2));
-      
-      setState(() {
-        _loadingText = 'Loading user data...';
-      });
-      
-      // Additional delay to ensure minimum 3 seconds visibility
-      await Future.delayed(const Duration(seconds: 1));
-      
-      // Check if user is logged in
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        // Get user role from Firestore
-        final userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
-        
-        if (userDoc.exists) {
-          final userData = userDoc.data() as Map<String, dynamic>;
-          final role = userData['role'] ?? 'tourist';
-          widget.onInitializationComplete(role);
-        } else {
-          // User document doesn't exist, treat as new user
-          widget.onInitializationComplete('new');
-        }
-      } else {
-        // No user logged in
-        widget.onInitializationComplete('guest');
-      }
-    } catch (e) {
-      print('Error during initialization: $e');
-      // In case of error, default to guest
-      widget.onInitializationComplete('guest');
+  void _startNavigationTimer() async {
+    // Total duration: 4 seconds (Animation 2.5s + 1.5s hold)
+    await Future.delayed(const Duration(milliseconds: 4000));
+
+    if (mounted) {
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              widget.nextScreen,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            // Smooth fade transition
+            const curve = Curves.easeInOut;
+            var tween =
+                Tween(begin: 0.0, end: 1.0).chain(CurveTween(curve: curve));
+            return FadeTransition(
+              opacity: animation.drive(tween),
+              child: child,
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 800),
+        ),
+      );
     }
   }
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Force status bar style
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -108,97 +142,150 @@ class _SplashScreenState extends State<SplashScreen>
         height: double.infinity,
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
             colors: [
-              Color(0xFF6A11CB),
-              Color(0xFF2575FC),
+              Color(0xFF6A11CB), // Purple
+              Color(0xFF2575FC), // Blue
             ],
           ),
         ),
         child: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // App Logo Animation
-              ScaleTransition(
-                scale: _scaleAnimation,
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
-                        width: 2,
-                      ),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.shield_outlined,
-                        size: 60,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Spacer(flex: 2),
+
+                // 1. App Logo with Elastic Pop
+                ScaleTransition(
+                  scale: _logoScaleAnimation,
+                  child: FadeTransition(
+                    opacity: _logoFadeAnimation,
+                    child: Container(
+                      width: 140,
+                      height: 140,
+                      decoration: BoxDecoration(
                         color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 20,
+                            offset: const Offset(0, 10),
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Image.asset(
+                            'assets/icon/app_icon.png',
+                            fit: BoxFit.contain,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 40),
-              
-              // App Title with Fade Animation
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: const Text(
-                  'Smart Tourist Safety',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 1.2,
+
+                const SizedBox(height: 50),
+
+                // 2. Title with Slide & Fade
+                SlideTransition(
+                  position: _titleSlideAnimation,
+                  child: FadeTransition(
+                    opacity: _titleFadeAnimation,
+                    child: const Column(
+                      children: [
+                        Text(
+                          'Welcome to',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.white70,
+                            letterSpacing: 1.5,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          'Smart Tourist Safety',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black26,
+                                offset: Offset(0, 2),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              
-              // Subtitle with Fade Animation
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: const Text(
-                  'Your safety is our priority',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w300,
+
+                const SizedBox(height: 20),
+
+                // 3. Subtitle with Slide & Fade
+                SlideTransition(
+                  position: _subtitleSlideAnimation,
+                  child: FadeTransition(
+                    opacity: _subtitleFadeAnimation,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: const Text(
+                        'Empowering your journey with real-time safety tracking, panic alerts, and instant authority connection.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white,
+                          height: 1.5,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 60),
-              
-              // Loading Indicator
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  strokeWidth: 3,
-                ),
-              ),
-              const SizedBox(height: 20),
-              
-              // Loading Text
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: Text(
-                  _loadingText,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.white70,
+
+                const Spacer(flex: 3),
+
+                // 4. Loading Indicator
+                FadeTransition(
+                  opacity: _loadingFadeAnimation,
+                  child: const Column(
+                    children: [
+                      CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        strokeWidth: 2.5,
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'Initializing...',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                const Spacer(flex: 1),
+              ],
+            ),
           ),
         ),
       ),

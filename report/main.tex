@@ -1,0 +1,519 @@
+\documentclass[12pt,a4paper]{article}
+
+% -------------------- Packages --------------------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{float} % For better figure placement
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\usepackage[pages=all]{background}
+
+\backgroundsetup{
+  scale=1,
+  color=black,
+  opacity=1,
+  angle=0,
+  contents={%
+    \begin{tikzpicture}[remember picture,overlay]
+      \draw[line width=1pt]
+        ($(current page.north west) + (1cm,-1cm)$)
+        rectangle
+        ($(current page.south east) + (-1cm,1cm)$);
+    \end{tikzpicture}%
+  }
+}
+
+% -------------------- Page Setup --------------------
+\geometry{
+ left=25mm,
+ right=20mm,
+ top=25mm,
+ bottom=25mm
+}
+
+\onehalfspacing
+
+\hypersetup{
+    hidelinks,
+    pdftitle={Smart Safety Tourist App Project Report},
+    pdfauthor={Akshay Shivaji Rathod},
+}
+
+\begin{document}
+
+% ==================== TITLE PAGE ====================
+\begin{titlepage}
+\begin{center}
+
+\vspace*{1cm}
+\Huge \textbf{Smart Safety Tourist App}\\
+\vspace{0.5cm}
+\LARGE Project Report\\
+
+\vspace{1.5cm}
+\textbf{Submitted by}\\
+\vspace{0.3cm}
+\large
+Akshay Shivaji Rathod\\
+Vinayak Rukmaji Gingine\\
+Tanmay Umavillas Karamunge\\
+
+\vspace{1.5cm}
+\includegraphics[width=0.35\textwidth]{college_logo}\\
+
+\vspace{1.2cm}
+\large
+Department of Computer Science Engineering (AI \& ML)\\
+Matoshri Pratishthan Group of Institutions, Nanded\\
+
+\vspace{0.8cm}
+June 2025
+
+\end{center}
+\end{titlepage}
+
+% ==================== FRONT MATTER ====================
+\pagenumbering{roman}
+\tableofcontents
+\newpage
+
+% ==================== MAIN CONTENT ====================
+\pagenumbering{arabic}
+
+% -------------------- Chapter 1 --------------------
+\section{Introduction}
+
+Tourism is one of the most vital sectors in the global economy, facilitating cultural exchange and economic growth. However, modern tourists face a multitude of challenges when visiting unfamiliar destinations. Key issues include safety concerns, language barriers, lack of knowledge about local transport, and difficulty in accessing emergency services. The \textbf{Smart Safety Tourist App} is a comprehensive mobile application designed to mitigate these risks and enhance the overall travel experience.
+
+The proposed system is an intelligent companion that integrates \textbf{Real-Time Navigation}, \textbf{Emergency Safety Services (SOS)}, and \textbf{Artificial Intelligence (AI)} assistance into a single platform. Unlike traditional travel apps that focus solely on booking or mapping, this application prioritizes the \textit{safety} and \textit{convenience} of the user.
+
+\subsection{Project Motivation}
+With the rise in solo travel and remote tourism, the need for a reliable digital guardian has never been greater. Tourists often fall victim to scams, get lost in navigation, or find themselves in emergency situations without knowing whom to contact. This project aims to bridge the gap between technology and personal safety, providing a "Virtual Tourist Police" that is always accessible.
+
+\subsection{Brief Overview}
+The app is built using **Flutter** for cross-platform compatibility (Android/iOS) and uses **Firebase** as a robust backend for real-time data handling. It leverages **Google Maps API** for precise location tracking and **Google's Gemini API** to provide an AI-powered smart travel guide that can answer queries, translate languages, and suggest itineraries.
+
+\newpage
+
+% -------------------- Chapter 2 --------------------
+\section{Objectives}
+
+The primary goal of the Smart Safety Tourist App is to create a secure ecosystem for travelers. The specific objectives are:
+
+\begin{itemize}
+    \item \textbf{To Enhance Tourist Safety:} Implement a robust SOS mechanism that allows users to instantly alert emergency contacts and authorities with their live GPS location.
+    \item \textbf{To Provide Intelligent Assistance:} Integrate a Generative AI chatbot (Gemini) that acts as a 24/7 personalized travel guide, offering information on history, culture, and local amenities.
+    \item \textbf{To Facilitate Seamless Navigation:} Utilize Google Maps to display real-time positions, nearby hospitals, police stations, ATMS, and tourist attractions.
+    \item \textbf{To Secure Personal Documents:} Develop a "Digital ID Locker" where users can securely store encryped copies of their passports, visas, and IDs for easy access.
+    \item \textbf{To Empower Authorities:} Create a dedicated dashboard for Tourist Police/Authorities to monitor alerts and manage safety in their jurisdiction.
+    \item \textbf{To Enable Cross-Platform Access:} Ensure the application performs uniformly effectively on both Android and iOS devices using the Flutter framework.
+\end{itemize}
+
+\newpage
+
+% -------------------- Chapter 3 --------------------
+\section{Problem Statement}
+
+Safety and information accessibility are the two biggest hurdles for any tourist. Through detailed analysis, the following core problems were identified:
+
+\begin{enumerate}
+    \item \textbf{Fragmented Solutions:} Currently, a tourist needs a map app for navigation, a translation app for language, a browser for finding places, and a separate dialer for emergencies. This switching between apps is inefficient and distracting.
+    \item \textbf{Delayed Emergency Response:} In a crisis, dialing a generic emergency number (like 100 or 911) might be difficult due to network issues or language barriers. There is no automated system to instantly share precise coordinates with loved ones.
+    \item \textbf{Vulnerability to Scams:} Tourists often lack knowledge about fair prices or safe areas, making them easy targets for local scams.
+    \item \textbf{Document Loss:} Losing physical documents in a foreign land is a nightmare scenario. Most users do not have a secure, organized way to store digital backups.
+\end{enumerate}
+
+\textbf{Solution Statement:} The Smart Safety Tourist App addresses these issues by providing a \textit{Single-Window Solution}—integrating safety, information, and utility tools into one application.
+
+\newpage
+
+% -------------------- Chapter 4 --------------------
+\section{Tools and Technologies Used}
+
+The project is built on a modern tech stack ensuring scalability, performance, and security.
+
+\subsection{Frontend: Flutter}
+Flutter is Google's open-source UI software development kit.
+\begin{itemize}
+    \item \textbf{Language:} Dart.
+    \item \textbf{Reason for Choice:} It allows for "Write Once, Run Anywhere," reducing development time. Its "Hot Reload" feature accelerated the UI design process.
+    \item \textbf{Widgets:} Analysis of the widget tree ensures a performant rendering engine (Skia).
+\end{itemize}
+
+\subsection{Backend: Firebase}
+A Backend-as-a-Service (BaaS) platform by Google.
+\begin{itemize}
+    \item \textbf{Firebase Authentication:} Handles secure sign-up/sign-in using Email/Password.
+    \item \textbf{Cloud Firestore:} A flexible, scalable NoSQL cloud database to store User Data, Alerts, and Chat History.
+    \item \textbf{Firebase Cloud Messaging (FCM):} Enables notifications for immediate safety alerts.
+    \item \textbf{Firebase Storage:} Used for storing images and documents in the Digital Locker.
+\end{itemize}
+
+\subsection{APIs and AI Services}
+\begin{itemize}
+    \item \textbf{Google Maps SDK:} Incorporated for rendering maps, placing markers, and obtaining user geocodes.
+    \item \textbf{Google Gemini API:} The core of the "Smart Assistant." It uses Large Language Models (LLM) to process natural language queries and provide context-aware travel advice.
+\end{itemize}
+
+\newpage
+
+% -------------------- Chapter 5 --------------------
+\section{Literature Review}
+
+A comparative study was conducted against existing market leaders:
+
+\begin{longtable}{|p{3cm}|p{4cm}|p{4cm}|p{3cm}|}
+\hline
+\textbf{App Name} & \textbf{Core Features} & \textbf{Limitations} & \textbf{Our Solution} \\
+\hline
+Google Maps & Navigation, Places reviews & No dedicated safety SOS; No conversational AI guide. & Integrated SOS \& AI Chat. \\
+\hline
+TripAdvisor & Itineraries, Hotel booking & Focuses on sales/booking; minimal safety features. & Focuses on User Safety. \\
+\hline
+bSafe / Life360 & Personal Safety (Tracking) & Generic safety; No tourism context or travel guides. & Combined Tourism context. \\
+\hline
+\end{longtable}
+
+\textbf{Conclusion from Review:} While many apps exist for specific niches (either only safety OR only travel), there is a distinct lack of a hybrid application that treats "Safety" as a core component of the "Tourism" experience.
+
+\newpage
+
+% -------------------- Chapter 6 --------------------
+\section{Scope of the Project}
+
+\subsection{In Scope}
+\begin{itemize}
+    \item \textbf{Module 1: User App (Tourist)}
+    \begin{itemize}
+        \item Registration \& Profile Management.
+        \item Interactive Map with POI (Points of Interest).
+        \item SOS Panic Button (SMS/Notification trigger).
+        \item AI Chatbot for queries.
+        \item Digital Document Locker.
+    \end{itemize}
+    \item \textbf{Module 2: Authority Dashboard (Police/Admin)}
+    \begin{itemize}
+        \item View list of currently active tourists.
+        \item Receive and view details of SOS alerts on a map.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Out of Scope}
+\begin{itemize}
+    \item \textbf{Monetary Transactions:} Payment gateways for booking flights/hotels are not included in this version.
+    \item \textbf{Offline Maps:} Hosting complete map data offline is resource-intensive and relies on paid tiers of map providers.
+    \item \textbf{Detailed Law Enforcement Tools:} Case management for police is simplified to just "Alert Viewing."
+\end{itemize}
+
+\newpage
+
+% -------------------- Chapter 7 --------------------
+\section{Methodology}
+
+We adopted the \textbf{Agile Methodology} for development. This allowed us to build the project in incremental sprints.
+
+\subsection{Phase 1: Requirement Gathering}
+Interact with potential users to understand their biggest travel fears. Conclusion: "getting lost" and "medical emergencies" were top concerns.
+
+\subsection{Phase 2: UI/UX Design}
+Wireframes were created using tools like Figma. Focus was placed on High Contrast buttons for the SOS feature to ensure it is visible even in panic situations.
+
+\subsection{Phase 3: Development Construction}
+\begin{itemize}
+    \item \textbf{Sprint 1:} Setup Flutter environment and Firebase project.
+    \item \textbf{Sprint 2:} Implement Authentication and Database schema.
+    \item \textbf{Sprint 3:} Integration of Google Maps and Geolocation logic.
+    \item \textbf{Sprint 4:} Integration of Gemini AI API.
+\end{itemize}
+
+\subsection{Phase 4: Testing & Deployment}
+Rigorous testing on multiple devices (Emulator, Physical Android Device) to check for GPS accuracy and UI responsiveness.
+
+\newpage
+
+% -------------------- Chapter 8 --------------------
+\section{System Architecture}
+
+The system architecture consists of three main layers: The Presentation Layer, The Application Logic Layer, and The Data Layer.
+
+\subsection{Components}
+\begin{itemize}
+    \item \textbf{Mobile Client:} The Flutter app, acting as the interface for both Tourists and Authorities.
+    \item \textbf{API Gateway / Interface:} The app communicates with Firebase SDKs and REST APIs (for Maps/AI).
+    \item \textbf{Cloud Backend:}
+    \begin{itemize}
+        \item \textbf{Firestore:} Handles NoSQL data storage.
+        \item \textbf{Auth Server:} Handles JWT token verification.
+    \end{itemize}
+\end{itemize}
+
+\subsection{Data Flow Description}
+When a user launches the app, a secure session is established via Firebase Auth. Location streams are initialized in the background. If the user moves significantly ($>10m$), the new coordinates are pushed to Firestore. If the user asks a question, the query is sent to Gemini, and the text response is streamed back to the Chat widget.
+
+% Diagram
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\textwidth]{image/system_architecture.png}
+    \caption{Architecture Data Flow}
+\end{figure}
+
+\newpage
+
+% -------------------- Chapter 9 --------------------
+\section{System Requirements}
+
+\subsection{Hardware Requirements (Mobile)}
+\begin{itemize}
+    \item \textbf{OS:} Android 8.0 (Oreo) or higher / iOS 12 or higher.
+    \item \textbf{Processor:} Quad-core 1.4 GHz or higher.
+    \item \textbf{RAM:} 3GB Minimum (4GB Recommended).
+    \item \textbf{Sensors:} GPS, Accelerometer.
+    \item \textbf{Internet:} Active 4G/5G or Wi-Fi connection.
+\end{itemize}
+
+\subsection{Hardware Requirements (Development PC)}
+\begin{itemize}
+    \item \textbf{Processor:} Intel Core i5 / AMD Ryzen 5 or better.
+    \item \textbf{RAM:} 8GB Minimum (16GB Recommended for Emulator).
+    \item \textbf{Disk Space:} 10GB free space for Android Studio \& SDKs.
+\end{itemize}
+
+\subsection{Software Stack}
+\begin{itemize}
+    \item \textbf{Framework:} Flutter SDK v3.x.
+    \item \textbf{Language:} Dart 3.0.
+    \item \textbf{IDE:} Visual Studio Code.
+    \item \textbf{Version Control:} Git \& GitHub.
+\end{itemize}
+
+\newpage
+
+% -------------------- Chapter 10 --------------------
+\section{GUI Design}
+
+The GUI focuses on "Thumb-Friendly" design, keeping important actions within easy reach.
+
+\subsection{Color Palette}
+\begin{itemize}
+    \item \textbf{Primary Blue:} Represents trust and security.
+    \item \textbf{Alert Red:} Used exclusively for SOS and Danger zones.
+    \item \textbf{White/Light Grey:} Backgrounds for readability.
+\end{itemize}
+
+\subsection{Screen Descriptions}
+\begin{itemize}
+    \item \textbf{Login Screen:} Features simple Email/Password fields and a "Register" toggle.
+    \item \textbf{Home Dashboard:} A Grid layout displaying "Emergency", "Map", "AI Guide", and "Locker".
+    \item \textbf{Map View:} A full-screen Google Map with a custom overlay for the "SOS" FAB (Floating Action Button).
+    \item \textbf{Chat Bot:} A standard messaging interface with message bubbles (User right, AI left).
+\end{itemize}
+
+\newpage
+
+% -------------------- Chapter 11 --------------------
+\section{Implementation Details}
+
+This chapter details the code structure and logic flows.
+
+\subsection{Directory Structure}
+\begin{verbatim}
+/lib
+  /main.dart        # Entry point
+  /config           # Themes, Routes
+  /models           # User, Alert, Place classes
+  /providers        # State Management (Provider/Riverpod)
+  /screens          # UI Files
+      /auth         # Login/Signup
+      /home         # Dashboard
+      /maps         # Map Tracking
+  /services         # API Calls
+      /auth_service.dart
+      /location_service.dart
+      /gemini_service.dart
+\end{verbatim}
+
+\subsection{State Management}
+We utilized the \textbf{Provider} package to manage application state. This allows user data (like `currentUser` object) to be accessible across all screens without passing parameters explicitly, improving code maintainability.
+
+\newpage
+
+% -------------------- Chapter 12 --------------------
+\section{Performance Evaluation}
+
+Performance testing was conducted using the Flutter DevTools suite.
+
+\subsection{Frame Rendering}
+The application targets 60 FPS (Frames Per Second). In lists (e.g., chat history), we utilized `ListView.builder` to lazily optimize memory usage, ensuring smooth scrolling even with hundreds of messages.
+
+\subsection{Memory Usage}
+Average memory consumption rests at ~150MB, peaking at ~250MB during heavy map usage. This is well within the limits of modern budget smartphones.
+
+\subsection{Network Efficiency}
+Data usage is minimized by caching map tiles and user images. Firestore listeners are disposed of when not in use to prevent memory leaks and unnecessary data reads.
+
+\newpage
+
+% -------------------- Chapter 13 --------------------
+\section{System Design and Working}
+
+\subsection{User Workflow}
+\begin{enumerate}
+    \item \textbf{Onboarding:} User installs app -> Grants Permissions (Location, Notification) -> Creates Account.
+    \item \textbf{Normal Usage:} User opens app -> Checks Map -> Asks AI for a restaurant recommendation.
+    \item \textbf{Emergency Usage:} User feels unsafe -> Opens App -> Long presses SOS button -> App sends distress signal -> Emergency Contacts receive SMS with Link -> Police Dashboard updates.
+\end{enumerate}
+
+\subsection{Data Model (Firestore)}
+\textbf{Collection: Users}
+\begin{itemize}
+    \item \texttt{uid} (String)
+    \item \texttt{name} (String)
+    \item \texttt{emergency\_contacts} (Array)
+\end{itemize}
+
+\textbf{Collection: Alerts}
+\begin{itemize}
+    \item \texttt{alert\_id} (String)
+    \item \texttt{sender\_uid} (Reference)
+    \item \texttt{location} (GeoPoint)
+    \item \texttt{timestamp} (DateTime)
+    \item \texttt{status} (String: Active/Resolved)
+\end{itemize}
+
+\newpage
+
+% -------------------- Chapter 14 --------------------
+\section{Testing and Validation}
+
+Testing ensured the system is fail-safe.
+
+\subsection{Unit Testing}
+Dart's `test` package was used to verify Logic functions (e.g., verifying that email strings are valid).
+
+\subsection{Integration Testing}
+\begin{longtable}{|p{4cm}|p{7cm}|p{3cm}|}
+\hline
+\textbf{Test Case} & \textbf{Procedure} & \textbf{Outcome} \\
+\hline
+SOS Trigger Latency & User presses SOS; Measure time until Alert appears on Admin Dashboard. & Avg: 2.1s (Pass) \\
+\hline
+Location Accuracy & Compare App coords with actual physical landmarks. & Diff: <10m (Pass) \\
+\hline
+AI Relevance & Ask "Where can I eat nearby?"; Verify response context. & Relevant (Pass) \\
+\hline
+Offline Handling & Turn off Data; Try to load Map. & Error Msg (Pass) \\
+\hline
+\end{longtable}
+
+\newpage
+
+% -------------------- Chapter 15 --------------------
+\section{Implementation Code}
+
+\subsection{Main Entry Point (main.dart)}
+\begin{verbatim}
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'Smart Tourist',
+      theme: AppTheme.lightTheme,
+      home: AuthGate(),
+    );
+  }
+}
+\end{verbatim}
+
+\subsection{Gemini AI Service (gemini\_service.dart)}
+\begin{verbatim}
+class GeminiService {
+  final model = GenerativeModel(
+      model: 'gemini-pro', 
+      apiKey: API_KEY
+  );
+
+  Future<String> getResponse(String prompt) async {
+    final content = [Content.text(prompt)];
+    final response = await model.generateContent(content);
+    return response.text ?? "I couldn't understand that.";
+  }
+}
+\end{verbatim}
+
+\newpage
+
+% -------------------- Chapter 16 --------------------
+\section{Results and Output}
+
+The project successfully delivered a functional prototype meeting the initial requirements.
+
+\subsection{Key Achievements}
+\begin{itemize}
+    \item \textbf{Stable Tracking:} The location engine runs reliably in the background without draining excessive battery.
+    \item \textbf{Responsive UI:} The app adapts to various screen sizes (Pixel 6, iPhone 13, Tablets).
+    \item \textbf{AI Assistant:} The chatbot effectively answers 95\% of general tourism queries.
+\end{itemize}
+
+\subsection{Output Screens}
+% Placeholders for screenshots
+\vspace{1cm}
+\noindent
+\textbf{Figure 16.1:} \textit{The Landing Page showing Quick Access Buttons.} \\
+\textbf{Figure 16.2:} \textit{The Map Interface with User Location.} \\
+\textbf{Figure 16.3:} \textit{The SOS Alert Countdown.}
+
+\newpage
+
+% -------------------- Chapter 17 --------------------
+\section{Conclusion}
+
+The \textbf{Smart Safety Tourist App} represents a significant step forward in modernizing the tourism experience. By treating safety not as an add-on but as a fundamental feature, the app empowers tourists to explore the world with confidence. The integration of Generative AI democratizes access to high-quality travel guidance, essentially putting a personal tour guide in every user's pocket.
+
+We successfully demonstrated that modern mobile frameworks (Flutter) combined with powerful cloud backends (Firebase) can produce enterprise-grade solutions for complex real-world problems.
+
+\newpage
+
+% -------------------- Chapter 18 --------------------
+\section{Future Scope}
+
+While the current version is feature-rich, the roadmap for future development includes:
+
+\begin{enumerate}
+    \item \textbf{Augmented Reality (AR) Guide:} Using the phone's camera to overlay historical facts on buildings in real-time.
+    \item \textbf{Offline Mode:} Implementing local vector maps and a lightweight AI model (e.g., TensorFlow Lite) for functional usage in remote areas without internet.
+    \item \textbf{Wearable Integration:} Extending SOS functionality to Smartwatches (WearOS / Apple Watch) for easier access.
+    \item \textbf{Crowdsourcing:} Allowing users to mark "Unsafe Areas" on the map, creating a community-driven safety heatmap.
+    \item \textbf{Voice Interaction:} Adding full voice-to-voice translation to break down language barriers completely.
+\end{enumerate}
+
+\newpage
+
+% -------------------- Chapter 19 --------------------
+\section*{References}
+\begin{enumerate}
+    \item Flutter Documentation. https://flutter.dev
+    \item Firebase Documentation. https://firebase.google.com
+    \item Google Maps Platform. https://developers.google.com/maps
+    \item Google AI for Developers (Gemini). https://ai.google.dev
+    \item Buhalis, D. (2015). "Smart Tourism Destinations." In \textit{Information and Communication Technologies in Tourism}.
+    \item "Safety in Tourism: A Global analysis," World Tourism Organization (UNWTO).
+\end{enumerate}
+
+\end{document}

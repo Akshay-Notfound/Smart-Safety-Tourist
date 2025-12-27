@@ -11,6 +11,9 @@ import 'aadhar_detail_screen.dart';
 import 'authority_settings_screen.dart';
 import 'chat_screen.dart';
 import 'edit_profile_screen.dart';
+import 'package:smart_tourist_app/services/logout_service.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 
 class AuthorityDashboardScreen extends StatefulWidget {
   const AuthorityDashboardScreen({super.key});
@@ -72,7 +75,7 @@ class _AuthorityDashboardScreenState extends State<AuthorityDashboardScreen>
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
-              FirebaseAuth.instance.signOut();
+              LogoutService.showLogoutDialog(context);
             },
           ),
         ],
@@ -275,7 +278,7 @@ class _AuthorityDashboardScreenState extends State<AuthorityDashboardScreen>
               title: const Text('Logout'),
               onTap: () {
                 Navigator.pop(context);
-                FirebaseAuth.instance.signOut();
+                LogoutService.showLogoutDialog(context);
               },
             ),
           ],
@@ -354,7 +357,12 @@ class TouristListView extends StatelessWidget {
                 var touristData =
                     tourists[index].data() as Map<String, dynamic>;
                 var touristId = tourists[index].id;
+                // Inject ID into data for passing to detail screen
+                touristData['uid'] = touristId;
+
                 var locationDoc = liveLocations[touristId];
+                var lastActiveTimestamp =
+                    touristData['lastActive'] as Timestamp?;
 
                 String statusText = 'Inactive';
                 Color statusColor = Colors.grey;
@@ -380,12 +388,33 @@ class TouristListView extends StatelessWidget {
                       statusIcon = const Icon(Icons.circle,
                           color: Colors.orange, size: 12);
                     } else {
-                      statusText = 'Active';
+                      statusText = 'Live Tracking (Active)';
                       statusColor = Colors.green;
                       statusIcon = const Icon(Icons.circle,
                           color: Colors.green, size: 12);
                     }
                   }
+                } else if (lastActiveTimestamp != null) {
+                  // Calculate time difference
+                  final now = DateTime.now();
+                  final activeTime = lastActiveTimestamp.toDate();
+                  final difference = now.difference(activeTime);
+
+                  if (difference.inMinutes < 1) {
+                    statusText = 'Active just now';
+                    statusColor = Colors.blue;
+                  } else if (difference.inMinutes < 60) {
+                    statusText = 'Active ${difference.inMinutes} min ago';
+                    statusColor = Colors.grey;
+                  } else if (difference.inHours < 24) {
+                    statusText = 'Active ${difference.inHours} hr ago';
+                    statusColor = Colors.grey;
+                  } else {
+                    statusText = 'Active ${difference.inDays} days ago';
+                    statusColor = Colors.grey;
+                  }
+                  statusIcon =
+                      Icon(Icons.access_time, color: statusColor, size: 12);
                 }
 
                 return Card(
@@ -667,6 +696,11 @@ class LiveMapView extends StatelessWidget {
               mapType: MapType.normal,
               myLocationEnabled: true,
               myLocationButtonEnabled: true,
+              gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
+                Factory<OneSequenceGestureRecognizer>(
+                  () => EagerGestureRecognizer(),
+                ),
+              },
             );
           } catch (e) {
             // If Google Maps fails, show fallback

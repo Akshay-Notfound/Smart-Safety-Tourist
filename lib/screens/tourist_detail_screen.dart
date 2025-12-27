@@ -1,107 +1,167 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:smart_tourist_app/services/weather_service.dart';
+import 'package:smart_tourist_app/services/safety_ml_service.dart';
+import 'package:smart_tourist_app/models/weather_data_model.dart';
 
-class TouristDetailScreen extends StatelessWidget {
+// Converted to StatefulWidget to handle async operations (Weather + Safety Score)
+class TouristDetailScreen extends StatefulWidget {
   final Map<String, dynamic> touristData;
   final Map<String, dynamic>? locationData;
 
-  const TouristDetailScreen(
-      {super.key, required this.touristData, this.locationData});
+  const TouristDetailScreen({
+    super.key,
+    required this.touristData,
+    this.locationData,
+  });
+
+  @override
+  State<TouristDetailScreen> createState() => _TouristDetailScreenState();
+}
+
+class _TouristDetailScreenState extends State<TouristDetailScreen> {
+  // State for Safety Score
+  bool _isLoadingSafety = true;
+  Map<String, dynamic> _safetyAnalysis = {};
+  Hours? _remoteWeather;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateSafetyScore();
+  }
+
+  Future<void> _calculateSafetyScore() async {
+    if (widget.locationData == null) {
+      if (mounted) {
+        setState(() {
+          _isLoadingSafety = false;
+          _safetyAnalysis = {
+            'score': 50,
+            'level': 'Unknown',
+            'color': 0xFF9E9E9E,
+            'details': 'No live location data available'
+          };
+        });
+      }
+      return;
+    }
+
+    try {
+      final lat = widget.locationData!['latitude'] as double;
+      final lon = widget.locationData!['longitude'] as double;
+      final status = widget.locationData!['status'] as String? ?? 'inactive';
+
+      // Fetch weather specifically for the tourist's location
+      // Note: We use a fresh repository instance or service here ideally,
+      // but for now we can leverage the existing WeatherService logic
+      // or create a lightweight fetch if needed.
+      // To keep it clean, let's use the Provider but we need to be careful not to override global state
+      // if the provider is singleton.
+      // Actually, WeatherService updates its state. We shouldn't use the global provider if we want isolated data.
+      // So we will instantiate a temporary service/repo logic here.
+
+      final weatherService = WeatherService();
+      await weatherService.fetchWeatherData(lat, lon);
+
+      if (mounted) {
+        setState(() {
+          _remoteWeather = weatherService.currentHour;
+          _safetyAnalysis = SafetyMLService.analyzeSafety(
+            currentWeather: _remoteWeather,
+            locationStatus: status,
+          );
+          _isLoadingSafety = false;
+        });
+      }
+    } catch (e) {
+      print('Error calculating safety score: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingSafety = false;
+          _safetyAnalysis = {
+            'score': 0,
+            'level': 'Error',
+            'color': 0xFF9E9E9E,
+            'details': 'Failed to analyze conditions'
+          };
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    var locationData = widget.locationData;
+    var touristData = widget.touristData; // Convenience alias
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tourist Details'),
-        backgroundColor: Colors.deepPurple.shade400,
+        title: Text(touristData['fullName'] ?? 'Tourist Details'),
+        backgroundColor: const Color(0xFF1D2640),
+        foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    Center(
-                      child: CircleAvatar(
-                        radius: 40,
-                        backgroundImage: touristData['profileImage'] != null &&
-                                touristData['profileImage']
-                                    .toString()
-                                    .isNotEmpty
-                            ? NetworkImage(touristData['profileImage'])
-                            : null,
-                        child: touristData['profileImage'] != null &&
-                                touristData['profileImage']
-                                    .toString()
-                                    .isNotEmpty
-                            ? null
-                            : Text(
-                                touristData['fullName']?[0] ?? 'T',
-                                style: const TextStyle(fontSize: 24),
-                              ),
+            if (locationData != null)
+              _buildMapContainer(
+                locationData['latitude'],
+                locationData['longitude'],
+                locationData['status'] ?? 'unknown',
+              ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildLocationCard(context),
+                  const SizedBox(height: 16),
+                  _buildSafetyScoreCard(), // New Safety Card
+                  const SizedBox(height: 16),
+                  const Text('Personal Information',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        children: [
+                          _buildDetailRow(
+                              icon: Icons.email,
+                              title: 'Email',
+                              value: touristData['email'] ?? 'N/A'),
+                          const Divider(),
+                          _buildDetailRow(
+                              icon: Icons.phone,
+                              title: 'Phone',
+                              value: touristData['phoneNumber'] ?? 'N/A'),
+                          const Divider(),
+                          _buildDetailRow(
+                              icon: Icons.badge,
+                              title: 'Aadhaar',
+                              value: touristData['aadharNumber'] ?? 'N/A'),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Center(
-                      child: Text(
-                        touristData['fullName'] ?? 'No Name Provided',
-                        style: const TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Center(
-                      child: Text(
-                        touristData['email'] ?? 'No Email',
-                        style: TextStyle(
-                            fontSize: 16, color: Colors.grey.shade600),
-                      ),
-                    ),
-                    const Divider(height: 32),
-                    _buildDetailRow(
-                      icon: Icons.phone,
-                      title: 'Phone Number',
-                      value: touristData['phoneNumber'] ?? 'N/A',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildDetailRow(
-                      icon: Icons.contact_phone_outlined,
-                      title: 'Emergency Contact',
-                      value: touristData['emergencyContact'] ?? 'N/A',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildDetailRow(
-                      icon: Icons.badge_outlined,
-                      title: 'Aadhaar / Passport No.',
-                      value: touristData['aadharNumber'] ?? 'N/A',
-                    ),
-                    const SizedBox(height: 16),
-                    _buildDetailRow(
-                      icon: Icons.shield_outlined,
-                      title: 'Current Safety Score',
-                      value: _getSafetyScoreText(touristData),
-                    ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 20),
+                  const Text('Emergency Contacts',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  _buildEmergencyContactsSection(context),
+                  const SizedBox(height: 20),
+                  const Text('ID Documents',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  _buildDocumentsSection(context),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            // Add the map view card for tourist location
-            _buildLocationCard(context),
-            const SizedBox(height: 16),
-            // Add emergency contacts section
-            _buildEmergencyContactsSection(context),
-            const SizedBox(height: 16),
-            // Add documents section
-            _buildDocumentsSection(context),
           ],
         ),
       ),
@@ -109,219 +169,89 @@ class TouristDetailScreen extends StatelessWidget {
   }
 
   Widget _buildLocationCard(BuildContext context) {
-    // If locationData is provided, show the map
-    if (locationData != null &&
-        locationData!['latitude'] != null &&
-        locationData!['longitude'] != null) {
-      final lat = locationData!['latitude'];
-      final lon = locationData!['longitude'];
-      final status = locationData!['status'] ?? 'tracking';
-
-      return Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.location_on,
-                      color: Colors.deepPurple.shade300, size: 28),
-                  const SizedBox(width: 16),
-                  const Text(
-                    'Current Location',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              // Wrap GoogleMap in a try-catch using a FutureBuilder to handle errors
-              _buildMapContainer(lat, lon, status),
-              const SizedBox(height: 16),
-              _buildLocationStatusInfo(status),
-            ],
-          ),
-        ),
-      );
-    } else {
-      // If no location data, show a message
-      return Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.location_off,
-                      color: Colors.grey.shade400, size: 28),
-                  const SizedBox(width: 16),
-                  const Text(
-                    'Location Tracking',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'This tourist is not currently sharing their location.',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            ],
-          ),
-        ),
-      );
+    if (widget.locationData == null) {
+      return const SizedBox.shrink(); // Using proper null handling
     }
+    // We can reuse the existing logic but accessed via widget.locationData
+    return _buildLocationStatusInfo(
+        widget.locationData!['status'] ?? 'unknown');
   }
 
-  Widget _buildMapContainer(double lat, double lon, String status) {
-    return Container(
-      height: 200,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: FutureBuilder<bool>(
-        future: _checkGoogleMapsAvailability(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+  // --- Helper Methods (Moved from stateless to state class) ---
 
-          if (snapshot.hasData && snapshot.data == true) {
-            // Google Maps is available, show the map
-            try {
-              return GoogleMap(
-                initialCameraPosition: CameraPosition(
-                  target: LatLng(lat, lon),
-                  zoom: 15,
-                ),
-                markers: {
-                  Marker(
-                    markerId: const MarkerId('tourist_location'),
-                    position: LatLng(lat, lon),
-                    icon: _getMarkerIcon(status),
-                    infoWindow: InfoWindow(
-                      title: touristData['fullName'] ?? 'Tourist',
-                      snippet: 'Status: ${_getStatusText(status)}',
-                    ),
-                  ),
-                },
-                mapType: MapType.normal,
-                zoomControlsEnabled: true,
-                myLocationButtonEnabled: false,
-                scrollGesturesEnabled: true,
-                zoomGesturesEnabled: true,
-                tiltGesturesEnabled: false,
-                rotateGesturesEnabled: false,
-              );
-            } catch (e) {
-              // If Google Maps fails, show fallback
-              return _buildMapFallback(lat, lon, status);
-            }
-          } else {
-            // Google Maps not available, show fallback
-            return _buildMapFallback(lat, lon, status);
-          }
+  Widget _buildMapContainer(double lat, double lon, String status) {
+    if (!_checkGoogleMapsAvailability()) {
+      return _buildMapFallback(lat, lon, status);
+    }
+
+    return SizedBox(
+      height: 250,
+      width: double.infinity,
+      child: GoogleMap(
+        initialCameraPosition: CameraPosition(
+          target: LatLng(lat, lon),
+          zoom: 15,
+        ),
+        markers: {
+          Marker(
+            markerId: const MarkerId('tourist_loc'),
+            position: LatLng(lat, lon),
+            icon:
+                BitmapDescriptor.defaultMarkerWithHue(_getMarkerColor(status)),
+          ),
         },
+        myLocationEnabled: false,
+        zoomControlsEnabled: false,
       ),
     );
   }
 
-  Future<bool> _checkGoogleMapsAvailability() async {
-    try {
-      // This is a simple check - in a real app you might want to do a more thorough check
-      return true;
-    } catch (e) {
-      return false;
-    }
+  bool _checkGoogleMapsAvailability() {
+    // Basic check - in a real app might verify API key presence or platform
+    return true;
   }
 
   Widget _buildMapFallback(double lat, double lon, String status) {
-    // Show a simple card with location information instead of the map
     return Container(
+      height: 250,
       width: double.infinity,
-      height: 200,
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.location_on,
-            size: 48,
-            color: _getMarkerColor(status),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Location: ${lat.toStringAsFixed(6)}, ${lon.toStringAsFixed(6)}',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Status: ${_getStatusText(status)}',
-            style: TextStyle(
-              fontSize: 14,
-              color: _getMarkerColor(status),
-            ),
-          ),
-        ],
+      color: Colors.grey[200],
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.location_on,
+                size: 50, color: _getMarkerColorHTML(status)),
+            const SizedBox(height: 8),
+            Text('Lat: $lat, Lon: $lon'),
+            Text('Status: $status',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
       ),
     );
   }
 
-  Color _getMarkerColor(String status) {
-    if (status == 'panic') {
-      return Colors.red;
-    } else {
-      final timestamp = (locationData!['timestamp'] as Timestamp?)?.toDate();
-      if (timestamp != null &&
-          DateTime.now().difference(timestamp).inMinutes > 15) {
-        return Colors.orange;
-      } else {
-        return Colors.green;
-      }
-    }
-  }
-
-  BitmapDescriptor _getMarkerIcon(String status) {
-    if (status == 'panic') {
-      return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
-    } else {
-      final timestamp = (locationData!['timestamp'] as Timestamp?)?.toDate();
-      if (timestamp != null &&
-          DateTime.now().difference(timestamp).inMinutes > 15) {
-        return BitmapDescriptor.defaultMarkerWithHue(
-            BitmapDescriptor.hueYellow);
-      } else {
-        return BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
-      }
-    }
-  }
-
-  String _getStatusText(String status) {
+  // Replaced with simple color getter since BitmapDescriptor is distinct
+  Color _getMarkerColorHTML(String status) {
     switch (status) {
       case 'panic':
-        return 'PANIC ALERT!';
+        return Colors.red;
       case 'tracking':
-        final timestamp = (locationData!['timestamp'] as Timestamp?)?.toDate();
-        if (timestamp != null &&
-            DateTime.now().difference(timestamp).inMinutes > 15) {
-          return 'Inactive (Location Off)';
-        }
-        return 'Live Tracking On';
+        return Colors.green;
       default:
-        return status;
+        return Colors.grey;
+    }
+  }
+
+  double _getMarkerColor(String status) {
+    switch (status) {
+      case 'panic':
+        return BitmapDescriptor.hueRed;
+      case 'tracking':
+        return BitmapDescriptor.hueGreen;
+      default:
+        return BitmapDescriptor.hueOrange;
     }
   }
 
@@ -332,215 +262,299 @@ class TouristDetailScreen extends StatelessWidget {
 
     switch (status) {
       case 'panic':
-        icon = Icons.error;
+        icon = Icons.warning_amber_rounded;
         color = Colors.red;
-        text = 'PANIC ALERT! Tourist requires immediate assistance.';
+        text = 'PANIC ALERT ACTIVE';
         break;
       case 'tracking':
-        final timestamp = (locationData!['timestamp'] as Timestamp?)?.toDate();
-        if (timestamp != null &&
-            DateTime.now().difference(timestamp).inMinutes > 15) {
-          icon = Icons.warning;
-          color = Colors.orange;
-          text =
-              'Location tracking is enabled but location data is stale (older than 15 minutes).';
-        } else {
-          icon = Icons.check_circle;
-          color = Colors.green;
-          text = 'Location tracking is active and up to date.';
-        }
+        icon = Icons.my_location;
+        color = Colors.green;
+        text = 'Live Tracking Active';
         break;
       default:
-        icon = Icons.info;
+        icon = Icons.location_off;
         color = Colors.grey;
-        text = 'Location status: $status';
+        text = 'Location Inactive';
     }
 
-    return Row(
-      children: [
-        Icon(icon, color: color, size: 20),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: TextStyle(color: color, fontSize: 14),
-          ),
+    return Card(
+      color: color.withOpacity(0.1),
+      child: ListTile(
+        leading: Icon(icon, color: color),
+        title: Text(text,
+            style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+        subtitle:
+            HelperText(status), // Helper widget for simple conditional text
+      ),
+    );
+  }
+
+  Widget HelperText(String status) {
+    if (status == 'panic')
+      return const Text('User has triggered emergency alert');
+    if (status == 'tracking')
+      return const Text('Location updating in real-time');
+    return const Text('Last known location shown');
+  }
+
+  Widget _buildSafetyScoreCard() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('AI Safety Analysis',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                if (_isLoadingSafety)
+                  const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                else
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                        color: Color(_safetyAnalysis['color'] ?? 0xFF9E9E9E),
+                        borderRadius: BorderRadius.circular(20)),
+                    child: Text(
+                      '${_safetyAnalysis['score'] ?? 0}/100',
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  )
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (!_isLoadingSafety) ...[
+              Row(
+                children: [
+                  Icon(Icons.shield,
+                      color: Color(_safetyAnalysis['color'] ?? 0xFF9E9E9E)),
+                  const SizedBox(width: 8),
+                  Text(_safetyAnalysis['level'] ?? 'Analyzing...',
+                      style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color:
+                              Color(_safetyAnalysis['color'] ?? 0xFF9E9E9E))),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _safetyAnalysis['details'] ?? 'Assessing risks...',
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+            ] else
+              const Text('Analyzing weather and location data...',
+                  style: TextStyle(color: Colors.grey))
+          ],
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildEmergencyContactsSection(BuildContext context) {
-    final List<dynamic>? emergencyContacts =
-        touristData['emergencyContacts'] as List<dynamic>?;
-
-    if (emergencyContacts == null || emergencyContacts.isEmpty) {
-      return Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: ExpansionTile(
-          title: const Text(
-            'Emergency Contacts',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          children: const [
-            Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                'No emergency contacts available for this tourist.',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            ),
-          ],
-        ),
-      );
+    // Assuming 'emergencyContacts' is a List in user data
+    if (widget.touristData['emergencyContacts'] == null) {
+      return const Text('No emergency contacts listed.',
+          style: TextStyle(color: Colors.grey));
     }
 
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ExpansionTile(
-        title: const Text(
-          'Emergency Contacts',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                const Text(
-                  'Contact these numbers in order if the tourist cannot be reached directly:',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
-                ),
-                const SizedBox(height: 16),
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: emergencyContacts.length,
-                  separatorBuilder: (context, index) =>
-                      const Divider(height: 16),
-                  itemBuilder: (context, index) {
-                    final contact =
-                        emergencyContacts[index] as Map<String, dynamic>;
-                    return ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: Colors.deepPurple.shade100,
-                        child: Text(
-                          contact['name']?[0] ?? '?',
-                          style: TextStyle(color: Colors.deepPurple.shade800),
-                        ),
-                      ),
-                      title: Text(contact['name'] ?? 'No Name'),
-                      subtitle: Text(contact['phone'] ?? 'No Phone'),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.phone, color: Colors.green),
-                        onPressed: () {
-                          // In a real app, this would initiate a phone call
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  'In a real app, this would initiate a phone call'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ],
+    // Logic to parse different formats if necessary, simplified for now
+    List<dynamic> contacts = widget.touristData['emergencyContacts'] is List
+        ? widget.touristData['emergencyContacts']
+        : [];
+
+    if (contacts.isEmpty) {
+      return const Text('No emergency contacts listed.',
+          style: TextStyle(color: Colors.grey));
+    }
+
+    return Column(
+      children: contacts.map<Widget>((contact) {
+        // Handle if contact is a Map or just a String (simple/complex structures)
+        String name = 'Contact';
+        String phone = '';
+        if (contact is Map) {
+          name = contact['name'] ?? 'Contact';
+          phone = contact['number'] ?? '';
+        } else {
+          // Fallback
+          phone = contact.toString();
+        }
+
+        return Card(
+          child: ListTile(
+            leading: const Icon(Icons.phone_in_talk, color: Colors.redAccent),
+            title: Text(name),
+            subtitle: Text(phone),
+            trailing: IconButton(
+              icon: const Icon(Icons.call, color: Colors.green),
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Simulating call to $phone')));
+              },
             ),
           ),
-        ],
-      ),
+        );
+      }).toList(),
     );
   }
 
   Widget _buildDocumentsSection(BuildContext context) {
-    final List<dynamic>? documents = touristData['documents'] as List<dynamic>?;
+    List<dynamic> documents = widget.touristData['documents'] ?? [];
 
-    if (documents == null || documents.isEmpty) {
-      return Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: ExpansionTile(
-          title: const Text(
-            'ID Documents',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          children: const [
-            Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                'No ID documents uploaded by this tourist.',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            ),
-          ],
-        ),
-      );
+    if (documents.isEmpty) {
+      return const Center(child: Text('No documents uploaded.'));
     }
 
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: ExpansionTile(
-        title: const Text(
-          'ID Documents',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: documents.length,
+      itemBuilder: (context, index) {
+        Map<String, dynamic> document = Map.from(documents[index] as Map);
+        bool isVerified = document['verified'] == true;
+        bool isRejected = document['rejected'] == true && !isVerified;
+
+        return Card(
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          child: ListTile(
+            leading: const Icon(Icons.description, color: Colors.blueAccent),
+            title: Text(document['name'] ?? 'Document ${index + 1}'),
+            subtitle: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Government-issued ID documents uploaded by the tourist:',
-                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                Text('Type: ${document['type'] ?? 'ID'}'),
+                Text('Date: ${_formatDate(document['uploadedAt'])}'),
+                const SizedBox(height: 4),
+                if (isVerified)
+                  const Text('Verified (Real)',
+                      style: TextStyle(
+                          color: Colors.green, fontWeight: FontWeight.bold))
+                else if (isRejected)
+                  const Text('Marked as Fake/Invalid',
+                      style: TextStyle(
+                          color: Colors.red, fontWeight: FontWeight.bold))
+                else
+                  const Text('Pending Verification',
+                      style: TextStyle(color: Colors.orange)),
+              ],
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.visibility),
+                  onPressed: () => _viewDocument(document['url'], context),
                 ),
-                const SizedBox(height: 16),
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: documents.length,
-                  separatorBuilder: (context, index) =>
-                      const Divider(height: 16),
-                  itemBuilder: (context, index) {
-                    final document = documents[index] as Map<String, dynamic>;
-                    return ListTile(
-                      leading: Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: Colors.deepPurple.shade100,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.description,
-                          color: Colors.deepPurple,
-                        ),
-                      ),
-                      title: Text(document['type'] ?? 'Document'),
-                      subtitle: Text(
-                        document['uploadedAt'] != null
-                            ? 'Uploaded: ${_formatDate(document['uploadedAt'])}'
-                            : 'Uploaded recently',
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.visibility, color: Colors.blue),
-                        onPressed: () =>
-                            _viewDocument(document['url'], context),
-                      ),
-                    );
-                  },
-                ),
+                // Verification Actions
+                if (!isVerified)
+                  IconButton(
+                    icon: const Icon(Icons.check_circle, color: Colors.green),
+                    tooltip: 'Mark as Real',
+                    onPressed: () => _verifyDocument(context, index, true),
+                  ),
+                if (!isRejected)
+                  IconButton(
+                    icon: const Icon(Icons.cancel, color: Colors.red),
+                    tooltip: 'Mark as Fake',
+                    onPressed: () => _verifyDocument(context, index, false),
+                  ),
               ],
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  Future<void> _verifyDocument(
+      BuildContext context, int index, bool isValid) async {
+    try {
+      // Create a copy of the documents list
+      List<dynamic> documents =
+          List.from(widget.touristData['documents'] ?? []);
+
+      if (index >= 0 && index < documents.length) {
+        // Update the specific document
+        Map<String, dynamic> doc = Map.from(documents[index] as Map);
+        doc['verified'] = isValid;
+        doc['rejected'] = !isValid;
+        doc['verifiedAt'] = Timestamp.now();
+        documents[index] = doc;
+
+        // Update Firestore
+        // Update Firestore
+        final uid = widget.touristData['uid'];
+        if (uid != null) {
+          final userRef =
+              FirebaseFirestore.instance.collection('users').doc(uid);
+
+          Color snackBarColor = isValid ? Colors.green : Colors.red;
+          String snackBarMessage =
+              isValid ? 'Document marked as Real' : 'Document marked as Fake';
+
+          // 1. Update documents array
+          await userRef.update({'documents': documents});
+
+          // 2. Add Notification
+          await userRef.collection('notifications').add({
+            'title': isValid
+                ? 'Document Approved'
+                : 'Action Required: Document Rejected',
+            'message': isValid
+                ? 'Your document has been verified by the authorities.'
+                : 'A document provided by you has been marked as invalid/fake. Please review immediately.',
+            'timestamp': FieldValue.serverTimestamp(),
+            'isRead': false,
+            'type': isValid ? 'success' : 'alert',
+          });
+
+          // 3. Flag user if document is fake
+          if (!isValid) {
+            await userRef.update({
+              'isFlagged': true,
+              'documentStatus': 'rejected',
+            });
+            snackBarMessage += '. User flagged.';
+          } else {
+            // Optional: Check if all documents are now valid and remove flag?
+            // For now, let's just assume valid updates don't Auto-Unflag to be safe
+          }
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(snackBarMessage),
+                backgroundColor: snackBarColor,
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                  content:
+                      Text('Error: User ID not found, cannot save changes')),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error updating document: $e')),
+        );
+      }
+    }
   }
 
   String _formatDate(dynamic timestamp) {
@@ -555,45 +569,69 @@ class TouristDetailScreen extends StatelessWidget {
   }
 
   void _viewDocument(String url, BuildContext context) {
-    // In a real app, you would open the image in a viewer
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('In a real app, this would open: $url'),
-        duration: const Duration(seconds: 2),
+    if (url.isEmpty) return;
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            iconTheme: const IconThemeData(color: Colors.white),
+            title: const Text('View Document',
+                style: TextStyle(color: Colors.white)),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              panEnabled: true,
+              boundaryMargin: const EdgeInsets.all(20),
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: Image.network(
+                url,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) => const Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error, color: Colors.red, size: 50),
+                    SizedBox(height: 16),
+                    Text('Failed to load image',
+                        style: TextStyle(color: Colors.white)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  String _getSafetyScoreText(Map<String, dynamic> touristData) {
-    // In a real implementation, this would fetch the actual safety score from the database
-    // For now, we'll return a placeholder that indicates this is dynamic data
-    return 'View live safety score in tourist app';
-  }
-
-  // Mahiti dakhavnyasathi helper widget
   Widget _buildDetailRow(
       {required IconData icon, required String title, required String value}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: Colors.deepPurple.shade300, size: 28),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-              ),
-            ],
-          ),
+        Icon(icon, color: Colors.grey, size: 20),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title,
+                style: const TextStyle(fontSize: 14, color: Colors.grey)),
+            const SizedBox(height: 2),
+            Text(value, style: const TextStyle(fontSize: 16)),
+          ],
         ),
       ],
     );

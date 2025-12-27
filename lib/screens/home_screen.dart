@@ -7,6 +7,7 @@ import 'package:location/location.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_tourist_app/services/weather_service.dart';
 import 'digital_id_screen.dart';
+import 'package:smart_tourist_app/screens/notification_screen.dart';
 // !! NAVIN FILES IMPORT KELYA !!
 // !! NAVIN FILES IMPORT KELYA !!
 import 'package:smart_tourist_app/services/version_check_service.dart';
@@ -77,6 +78,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _initializeScreen() async {
     try {
+      if (user != null) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user!.uid)
+            .update({
+          'lastActive': FieldValue.serverTimestamp(),
+        });
+      }
       await _fetchUserData();
       // Don't block the UI initialization on weather data
       _refreshSafetyStatus(showSnackbar: false);
@@ -321,7 +330,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
-        title: const Text('Home - Smart Safety (Updated)'),
+        title: const Text('Home - Smart Safety'),
         backgroundColor: Colors.deepPurple.shade400,
         leading: IconButton(
           icon: const Icon(Icons.menu),
@@ -330,6 +339,62 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
         actions: [
+          // Notification Icon with Badge
+          StreamBuilder<QuerySnapshot>(
+            stream: user != null
+                ? FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(user!.uid)
+                    .collection('notifications')
+                    .where('isRead', isEqualTo: false)
+                    .snapshots()
+                : null,
+            builder: (context, snapshot) {
+              int unreadCount = 0;
+              if (snapshot.hasData) {
+                unreadCount = snapshot.data!.docs.length;
+              }
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const NotificationScreen()),
+                      );
+                    },
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(2),
+                        decoration: BoxDecoration(
+                          color: Colors.red,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 14,
+                          minHeight: 14,
+                        ),
+                        child: Text(
+                          '$unreadCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
@@ -531,6 +596,42 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Warning Banner for Flagged Accounts
+                  if (userData?['isFlagged'] == true ||
+                      userData?['documentStatus'] == 'rejected')
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        border: Border.all(color: Colors.red),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.warning, color: Colors.red),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Action Required',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  'Your account is flagged due to invalid documents. Please contact support.',
+                                  style: TextStyle(color: Colors.red.shade800),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   Text(
                     'Welcome,',
                     style: Theme.of(context)

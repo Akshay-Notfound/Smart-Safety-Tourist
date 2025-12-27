@@ -3,6 +3,7 @@ import 'login_screen.dart';
 import 'register_screen.dart';
 import 'authority_login_screen.dart';
 import 'authority_register_screen.dart';
+import 'super_admin_login_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -13,6 +14,33 @@ class WelcomeScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Smart Tourist Safety'),
         backgroundColor: Colors.deepPurple.shade300,
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'super_admin') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const SuperAdminLoginScreen()),
+                );
+              }
+            },
+            itemBuilder: (BuildContext context) {
+              return [
+                const PopupMenuItem<String>(
+                  value: 'super_admin',
+                  child: Row(
+                    children: [
+                      Icon(Icons.admin_panel_settings, color: Colors.black54),
+                      SizedBox(width: 8),
+                      Text('Super Admin Login'),
+                    ],
+                  ),
+                ),
+              ];
+            },
+          ),
+        ],
       ),
       body: Center(
         child: SingleChildScrollView(
@@ -33,7 +61,7 @@ class WelcomeScreen extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 50),
-              
+
               // Tourist Login Button
               ElevatedButton(
                 onPressed: () {
@@ -49,7 +77,7 @@ class WelcomeScreen extends StatelessWidget {
                 child: const Text('Login as Tourist'),
               ),
               const SizedBox(height: 20),
-              
+
               // Tourist Register Button
               OutlinedButton(
                 onPressed: () {
@@ -65,16 +93,17 @@ class WelcomeScreen extends StatelessWidget {
                 child: const Text('Register as Tourist'),
               ),
               const SizedBox(height: 40),
-              
+
               const Divider(),
               const SizedBox(height: 20),
-              
+
               // Authority Register Button
               OutlinedButton(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => AuthorityRegisterScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => AuthorityRegisterScreen()),
                   );
                 },
                 style: OutlinedButton.styleFrom(
@@ -84,13 +113,14 @@ class WelcomeScreen extends StatelessWidget {
                 child: const Text('Register as Authority'),
               ),
               const SizedBox(height: 10),
-              
+
               // Authority Login Button
               TextButton(
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => AuthorityLoginScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => AuthorityLoginScreen()),
                   );
                 },
                 child: const Text(

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:video_player/video_player.dart';
 import '../services/theme_provider.dart';
-import '../services/gemini_service.dart';
+import '../services/knowledge_base_service.dart';
 
 class SmartAssistantScreen extends StatefulWidget {
   const SmartAssistantScreen({super.key});
@@ -16,13 +17,33 @@ class _SmartAssistantScreenState extends State<SmartAssistantScreen> {
     {
       'role': 'assistant',
       'message':
-          'Hello! I am your Smart Travel Assistant. How can I help you with your safety or travel plans today?'
+          'Hello! I am your Smart Travel Assistant. Ask me about Safety, Weather, Documents, or Emergency features.'
     }
   ];
   final ScrollController _scrollController = ScrollController();
 
-  final GeminiService _geminiService = GeminiService();
+  final KnowledgeBaseService _knowledgeService = KnowledgeBaseService();
   bool _isTyping = false;
+  late VideoPlayerController _videoController;
+
+  @override
+  void initState() {
+    super.initState();
+    _videoController = VideoPlayerController.asset('assets/videos/chat_bot.mp4')
+      ..initialize().then((_) {
+        _videoController.setLooping(true);
+        _videoController.play();
+        setState(() {});
+      });
+  }
+
+  @override
+  void dispose() {
+    _videoController.dispose();
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   void _sendMessage() async {
     if (_messageController.text.trim().isEmpty) return;
@@ -36,7 +57,8 @@ class _SmartAssistantScreenState extends State<SmartAssistantScreen> {
     _scrollToBottom();
 
     try {
-      final response = await _geminiService.sendMessage(userMessage);
+      // Use the local KnowledgeBaseService
+      final response = await _knowledgeService.sendMessage(userMessage);
 
       if (mounted) {
         setState(() {
@@ -53,7 +75,7 @@ class _SmartAssistantScreenState extends State<SmartAssistantScreen> {
         setState(() {
           _messages.add({
             'role': 'assistant',
-            'message': "Sorry, something went wrong. Please try again.",
+            'message': "Sorry, I'm having trouble retrieving information.",
           });
           _isTyping = false;
         });
@@ -87,6 +109,18 @@ class _SmartAssistantScreenState extends State<SmartAssistantScreen> {
       ),
       body: Column(
         children: [
+          if (_videoController.value.isInitialized)
+            Container(
+              height: 150,
+              width: double.infinity,
+              color: isDarkMode ? const Color(0xFF1D2640) : Colors.deepPurple,
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: _videoController.value.aspectRatio,
+                  child: VideoPlayer(_videoController),
+                ),
+              ),
+            ),
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
@@ -129,6 +163,12 @@ class _SmartAssistantScreenState extends State<SmartAssistantScreen> {
               },
             ),
           ),
+          if (_isTyping)
+            const Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text("Consulting Knowledge Base...",
+                  style: TextStyle(color: Colors.grey)),
+            ),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -147,7 +187,7 @@ class _SmartAssistantScreenState extends State<SmartAssistantScreen> {
                   child: TextField(
                     controller: _messageController,
                     decoration: InputDecoration(
-                      hintText: 'Ask me anything...',
+                      hintText: 'Ask about safety, weather, etc...',
                       hintStyle: TextStyle(
                         color: isDarkMode ? Colors.white54 : Colors.grey[600],
                       ),
