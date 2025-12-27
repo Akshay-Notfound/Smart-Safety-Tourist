@@ -30,12 +30,12 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   // User aani UI sathi variables
   final User? user = FirebaseAuth.instance.currentUser;
   Map<String, dynamic>? userData;
   bool _isLoading = true;
-  // int _safetyScore = 50; // Removed unused variable
 
   // Location sathi variables
   bool _isSharingLocation = false;
@@ -44,11 +44,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  // Animation Controller
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
   @override
   void initState() {
     super.initState();
     _initializeScreen();
     _checkForUpdates();
+
+    _animationController = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: 1500),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    );
+    _slideAnimation =
+        Tween<Offset>(begin: Offset(0, 0.3), end: Offset.zero).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+    _animationController.forward();
   }
 
   Future<void> _checkForUpdates() async {
@@ -72,6 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _animationController.dispose();
     _stopLocationUpdates();
     super.dispose();
   }
@@ -115,7 +134,6 @@ class _HomeScreenState extends State<HomeScreen> {
         }
       } catch (e) {
         print('Error fetching user data: $e');
-        // We still want to proceed even if we can't fetch user data immediately
         if (mounted) {
           setState(() {
             userData = {};
@@ -139,7 +157,6 @@ class _HomeScreenState extends State<HomeScreen> {
         if (permissionGranted != PermissionStatus.granted) return;
       }
 
-      // Add timeout to prevent hanging
       final currentLocation = await _locationService.getLocation().timeout(
         const Duration(seconds: 10),
         onTimeout: () {
@@ -148,7 +165,6 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       );
 
-      // Get weather service and fetch data
       final weatherService =
           Provider.of<WeatherService>(context, listen: false);
       await weatherService.fetchWeatherData(
@@ -158,30 +174,32 @@ class _HomeScreenState extends State<HomeScreen> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Weather data updated successfully!'),
           backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
         ));
       }
     } on SocketException {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content:
-              const Text('No internet connection. Please check your network.'),
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('No internet connection. Please check your network.'),
           backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
         ));
       }
     } on TimeoutException {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: const Text('Request timeout. Please try again.'),
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Request timeout. Please try again.'),
           backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
         ));
       }
     } catch (e) {
       print('Weather fetch error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content:
-              const Text('Failed to fetch weather data. Please try again.'),
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Failed to fetch weather data. Please try again.'),
           backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
         ));
       }
     }
@@ -192,23 +210,22 @@ class _HomeScreenState extends State<HomeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Fetching live weather to update status...'),
         duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
       ));
     }
     await _fetchWeatherData();
-    // Safety score is now calculated by the WeatherService
     if (mounted && showSnackbar) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Safety Status Updated based on live weather!'),
         backgroundColor: Colors.green,
         duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
       ));
     }
   }
 
   void _showWeatherInfo() async {
-    // Refresh weather data
     await _fetchWeatherData();
-
     if (mounted) {
       showModalBottomSheet(
         context: context,
@@ -254,7 +271,6 @@ class _HomeScreenState extends State<HomeScreen> {
             'touristName': userData?['fullName'] ?? 'Unknown Tourist',
             'status': 'tracking'
           }).then((_) {
-            // Add debug print to confirm location update
             print(
                 'Location updated for user ${user!.uid}: ${currentLocation.latitude}, ${currentLocation.longitude}');
           }).catchError((error) {
@@ -265,14 +281,16 @@ class _HomeScreenState extends State<HomeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Live location sharing is ON.'),
-            backgroundColor: Colors.green));
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating));
       }
     } else {
       _stopLocationUpdates();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Live location sharing is OFF.'),
-            backgroundColor: Colors.grey));
+            backgroundColor: Colors.grey,
+            behavior: SnackBarBehavior.floating));
       }
     }
   }
@@ -297,15 +315,17 @@ class _HomeScreenState extends State<HomeScreen> {
           .doc(user!.uid)
           .update({'status': 'panic'});
 
-      // Show confirmation dialog
       if (mounted) {
         showDialog(
           context: context,
           builder: (BuildContext context) {
             return AlertDialog(
-              title: const Text('Panic Alert Sent!'),
+              title: const Text('Panic Alert Sent!',
+                  style: TextStyle(color: Colors.red)),
               content: const Text(
                   'Authorities have been notified. Help is on the way.'),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
@@ -329,17 +349,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       key: _scaffoldKey,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Home - Smart Safety'),
-        backgroundColor: Colors.deepPurple.shade400,
+        title: const Text('Home - Smart Safety',
+            style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.menu),
+          icon: const Icon(Icons.menu, color: Colors.white),
           onPressed: () {
             _scaffoldKey.currentState?.openDrawer();
           },
         ),
         actions: [
-          // Notification Icon with Badge
           StreamBuilder<QuerySnapshot>(
             stream: user != null
                 ? FirebaseFirestore.instance
@@ -358,7 +381,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 alignment: Alignment.center,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.notifications),
+                    icon: const Icon(Icons.notifications, color: Colors.white),
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -396,7 +419,7 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: Colors.white),
             onPressed: () async {
               _stopLocationUpdates();
               LogoutService.showLogoutDialog(context);
@@ -404,152 +427,261 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      drawer: Drawer(
+      drawer: _buildDrawer(),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.deepPurple.shade900,
+              Colors.deepPurpleAccent.shade200
+            ],
+          ),
+        ),
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: Colors.white))
+            : SafeArea(
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildWarningBanner(),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Welcome,',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 18,
+                            ),
+                          ),
+                          Text(
+                            userData?['fullName'] ?? 'Tourist',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          _buildModernCard(
+                            icon: Icons.shield_outlined,
+                            title: 'Your Safety Status',
+                            subtitle: 'Current Status: $safetyStatusText',
+                            child: Column(
+                              children: [
+                                Text(
+                                  weatherService.isLoading
+                                      ? '...'
+                                      : '${safetyScore}/100',
+                                  style: TextStyle(
+                                    fontSize: 56,
+                                    fontWeight: FontWeight.bold,
+                                    color: _getScoreColor(safetyScore),
+                                  ),
+                                ),
+                                Text(
+                                  weatherService.isLoading
+                                      ? 'Checking...'
+                                      : safetyStatusText,
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: safetyStatusColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            actions: [
+                              IconButton(
+                                icon: Icon(Icons.info_outline,
+                                    color: Colors.blue.shade600),
+                                onPressed: _showWeatherInfo,
+                                tooltip: 'Check Live Weather',
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.refresh,
+                                    color: Colors.grey.shade600),
+                                onPressed: _refreshSafetyStatus,
+                                tooltip: 'Refresh Status',
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 20),
+                          _buildModernCard(
+                            icon: Icons.track_changes_outlined,
+                            title: 'Live Tracking',
+                            subtitle:
+                                'Share My Location in Real-Time\nAllows family & authorities to track you.',
+                            child: Container(),
+                            trailing: Transform.scale(
+                              scale: 0.8,
+                              child: Switch(
+                                value: _isSharingLocation,
+                                onChanged: _toggleLocationSharing,
+                                activeColor: Colors.deepPurple,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 100), // Space for FABs
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+      ),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 20.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            FloatingActionButton.extended(
+              heroTag: 'ai_assistant',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const SmartAssistantScreen()),
+                );
+              },
+              label: const Text('AI Assistant',
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              icon: const Icon(Icons.smart_toy),
+              backgroundColor: Colors.deepPurple.shade700,
+              elevation: 4,
+            ),
+            const SizedBox(height: 16),
+            FloatingActionButton.extended(
+              heroTag: 'panic_btn',
+              onPressed: _onPanicPressed,
+              label: const Text('PANIC',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+              icon: const Icon(Icons.warning_amber_rounded),
+              backgroundColor: Colors.red.shade700,
+              elevation: 8,
+            ),
+          ],
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+    );
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+        ),
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
+            UserAccountsDrawerHeader(
               decoration: BoxDecoration(
-                color: Colors.deepPurple.shade400,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.deepPurple.shade800,
+                    Colors.deepPurpleAccent.shade200
+                  ],
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context);
-                      if (userData != null) {
-                        _navigateToScreen(
-                            EditProfileScreen(userData: userData!));
-                      }
-                    },
-                    child: CircleAvatar(
-                      radius: 30,
-                      backgroundColor: Colors.white,
-                      backgroundImage: userData?['profileImage'] != null &&
-                              userData!['profileImage'].toString().isNotEmpty
-                          ? NetworkImage(userData!['profileImage'])
-                          : null,
-                      child: userData?['profileImage'] != null &&
-                              userData!['profileImage'].toString().isNotEmpty
-                          ? null
-                          : Text(
-                              userData?['fullName']?.toString().isNotEmpty ==
-                                      true
-                                  ? userData!['fullName'][0].toUpperCase()
-                                  : 'T',
-                              style: TextStyle(
-                                fontSize: 24,
-                                color: Colors.deepPurple.shade400,
-                              ),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    userData?['fullName'] ?? 'Tourist',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    userData?['email'] ?? '',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+              accountName: Text(
+                userData?['fullName'] ?? 'Tourist',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              accountEmail: Text(
+                userData?['email'] ?? '',
+                style: const TextStyle(color: Colors.white70),
+              ),
+              currentAccountPicture: GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                  if (userData != null) {
+                    _navigateToScreen(EditProfileScreen(userData: userData!));
+                  }
+                },
+                child: CircleAvatar(
+                  backgroundColor: Colors.white,
+                  backgroundImage: userData?['profileImage'] != null &&
+                          userData!['profileImage'].toString().isNotEmpty
+                      ? NetworkImage(userData!['profileImage'])
+                      : null,
+                  child: userData?['profileImage'] != null &&
+                          userData!['profileImage'].toString().isNotEmpty
+                      ? null
+                      : Text(
+                          userData?['fullName']?.toString().isNotEmpty == true
+                              ? userData!['fullName'][0].toUpperCase()
+                              : 'T',
+                          style: TextStyle(
+                            fontSize: 32,
+                            color: Colors.deepPurple.shade700,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                ),
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Edit Profile'),
-              onTap: () {
-                Navigator.pop(context);
-                if (userData != null) {
-                  _navigateToScreen(EditProfileScreen(userData: userData!));
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.badge_outlined),
-              title: const Text('View Digital ID'),
-              onTap: () {
-                Navigator.pop(context);
-                if (userData != null) {
-                  _navigateToScreen(DigitalIdScreen(userData: userData!));
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.map_outlined),
-              title: const Text('Manage Itinerary'),
-              onTap: () {
-                Navigator.pop(context);
-                _navigateToScreen(ItineraryScreen());
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.contact_phone_outlined),
-              title: const Text('Emergency Contacts'),
-              onTap: () {
-                Navigator.pop(context);
-                _navigateToScreen(EmergencyContactsScreen());
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.upload_file),
-              title: const Text('Upload Documents'),
-              onTap: () {
-                Navigator.pop(context);
-                _navigateToScreen(DocumentUploadScreen());
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.badge),
-              title: const Text('View Aadhaar Details'),
-              onTap: () {
-                Navigator.pop(context);
-                if (user != null) {
-                  _navigateToScreen(AadharDetailScreen(userId: user!.uid));
-                }
-              },
-            ),
+            _buildDrawerItem(Icons.person, 'Edit Profile', () {
+              if (userData != null) {
+                _navigateToScreen(EditProfileScreen(userData: userData!));
+              }
+            }),
+            _buildDrawerItem(Icons.badge_outlined, 'View Digital ID', () {
+              if (userData != null) {
+                _navigateToScreen(DigitalIdScreen(userData: userData!));
+              }
+            }),
+            _buildDrawerItem(Icons.map_outlined, 'Manage Itinerary', () {
+              _navigateToScreen(ItineraryScreen());
+            }),
+            _buildDrawerItem(Icons.contact_phone_outlined, 'Emergency Contacts',
+                () {
+              _navigateToScreen(EmergencyContactsScreen());
+            }),
+            _buildDrawerItem(Icons.upload_file, 'Upload Documents', () {
+              _navigateToScreen(DocumentUploadScreen());
+            }),
+            _buildDrawerItem(Icons.badge, 'View Aadhaar Details', () {
+              if (user != null) {
+                _navigateToScreen(AadharDetailScreen(userId: user!.uid));
+              }
+            }),
             const Divider(),
+            _buildDrawerItem(Icons.chat_bubble_outline, 'Community Chat', () {
+              if (userData != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ChatScreen(userData: userData!),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                      content: Text('Please wait for user data to load')),
+                );
+              }
+            }),
+            _buildDrawerItem(Icons.shield_outlined, 'Safety Status', () {
+              _refreshSafetyStatus();
+            }),
             ListTile(
-              leading: const Icon(Icons.chat_bubble_outline),
-              title: const Text('Community Chat'),
-              onTap: () {
-                Navigator.pop(context);
-                if (userData != null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChatScreen(userData: userData!),
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                        content: Text('Please wait for user data to load')),
-                  );
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.shield_outlined),
-              title: const Text('Safety Status'),
-              onTap: () {
-                Navigator.pop(context);
-                _refreshSafetyStatus();
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.track_changes_outlined),
+              leading: Icon(Icons.track_changes_outlined,
+                  color: Colors.deepPurple.shade700),
               title: const Text('Live Tracking'),
               trailing: Switch(
                 value: _isSharingLocation,
@@ -557,6 +689,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Navigator.pop(context);
                   _toggleLocationSharing(value);
                 },
+                activeColor: Colors.deepPurple,
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -564,182 +697,142 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             const Divider(),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text('Settings'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SettingsScreen(),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Logout'),
-              onTap: () async {
-                Navigator.pop(context);
-                _stopLocationUpdates();
-                LogoutService.showLogoutDialog(context);
-              },
-            ),
+            _buildDrawerItem(Icons.settings, 'Settings', () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
+            }),
+            _buildDrawerItem(Icons.logout, 'Logout', () async {
+              _stopLocationUpdates();
+              LogoutService.showLogoutDialog(context);
+            }),
           ],
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+    );
+  }
+
+  Widget _buildDrawerItem(IconData icon, String title, VoidCallback onTap) {
+    return ListTile(
+      leading: Icon(icon, color: Colors.deepPurple.shade700),
+      title: Text(title, style: TextStyle(fontWeight: FontWeight.w500)),
+      onTap: () {
+        Navigator.pop(context);
+        onTap();
+      },
+    );
+  }
+
+  Widget _buildModernCard({
+    required IconData icon,
+    required String title,
+    String? subtitle,
+    required Widget child,
+    List<Widget>? actions,
+    Widget? trailing,
+  }) {
+    return Card(
+      elevation: 8,
+      shadowColor: Colors.black26,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      color: Colors.white.withOpacity(0.95),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Row(
+                    children: [
+                      Icon(icon, color: Colors.deepPurple.shade700, size: 28),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade800,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (actions != null) Row(children: actions),
+                if (trailing != null) trailing,
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(height: 1),
+            const SizedBox(height: 16),
+            child,
+            if (subtitle != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey.shade600,
+                  height: 1.4,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWarningBanner() {
+    if (userData?['isFlagged'] == true ||
+        userData?['documentStatus'] == 'rejected') {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.red.shade50.withOpacity(0.9),
+          border: Border.all(color: Colors.red.shade200),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red.shade700),
+            const SizedBox(width: 12),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Warning Banner for Flagged Accounts
-                  if (userData?['isFlagged'] == true ||
-                      userData?['documentStatus'] == 'rejected')
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 16),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        border: Border.all(color: Colors.red),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.warning, color: Colors.red),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'Action Required',
-                                  style: TextStyle(
-                                    color: Colors.red,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                Text(
-                                  'Your account is flagged due to invalid documents. Please contact support.',
-                                  style: TextStyle(color: Colors.red.shade800),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   Text(
-                    'Welcome,',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium
-                        ?.copyWith(color: Colors.grey.shade600),
+                    'Action Required',
+                    style: TextStyle(
+                      color: Colors.red.shade900,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   Text(
-                    userData?['fullName'] ?? 'Tourist',
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineMedium
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 24),
-                  _buildInfoCard(
-                    icon: Icons.shield_outlined,
-                    title: 'Your Safety Status',
-                    actionButton: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.info_outline,
-                              color: Colors.blue.shade400),
-                          onPressed: _showWeatherInfo,
-                          tooltip: 'Check Live Weather',
-                        ),
-                        IconButton(
-                          icon:
-                              Icon(Icons.refresh, color: Colors.grey.shade600),
-                          onPressed: _refreshSafetyStatus,
-                          tooltip: 'Refresh Status',
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          weatherService.isLoading
-                              ? 'Loading...'
-                              : '${safetyScore}/100',
-                          style: TextStyle(
-                            fontSize: 48,
-                            fontWeight: FontWeight.bold,
-                            color: _getScoreColor(safetyScore),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          weatherService.isLoading
-                              ? 'Fetching weather data...'
-                              : 'Current Status: $safetyStatusText',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: safetyStatusColor,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const SizedBox(height: 16),
-                  _buildInfoCard(
-                    icon: Icons.track_changes_outlined,
-                    title: 'Live Tracking',
-                    child: ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Share My Location in Real-Time'),
-                      subtitle: const Text(
-                          'Allows family & authorities to track you.'),
-                      trailing: Switch(
-                        value: _isSharingLocation,
-                        onChanged: _toggleLocationSharing,
-                      ),
-                    ),
+                    'Your account is flagged. Please contact support.',
+                    style: TextStyle(color: Colors.red.shade800, fontSize: 13),
                   ),
                 ],
               ),
             ),
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          FloatingActionButton.extended(
-            heroTag: 'ai_assistant',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                    builder: (context) => const SmartAssistantScreen()),
-              );
-            },
-            label: const Text('AI Assistant'),
-            icon: const Icon(Icons.smart_toy),
-            backgroundColor: Colors.deepPurple,
-          ),
-          const SizedBox(height: 16),
-          FloatingActionButton.extended(
-            heroTag: 'panic_btn',
-            onPressed: _onPanicPressed,
-            label: const Text('PANIC'),
-            icon: const Icon(Icons.warning_amber_rounded),
-            backgroundColor: Colors.red.shade700,
-          ),
-        ],
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-    );
+          ],
+        ),
+      );
+    }
+    return SizedBox.shrink();
   }
 
   Color _getScoreColor(int score) {
@@ -757,46 +850,5 @@ class _HomeScreenState extends State<HomeScreen> {
     if (result == true) {
       _fetchUserData();
     }
-  }
-
-  Widget _buildInfoCard(
-      {required IconData icon,
-      required String title,
-      required Widget child,
-      Widget? actionButton}) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Icon(icon, color: Colors.grey.shade600),
-                    const SizedBox(width: 8),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-                if (actionButton != null) actionButton,
-              ],
-            ),
-            const Divider(height: 24),
-            child,
-          ],
-        ),
-      ),
-    );
   }
 }
