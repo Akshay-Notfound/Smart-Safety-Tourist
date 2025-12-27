@@ -18,226 +18,213 @@ class AuthoritySettingsScreen extends StatefulWidget {
 }
 
 class _AuthoritySettingsScreenState extends State<AuthoritySettingsScreen> {
+  // Theme Constants matching Authority Dashboard
+  final Color _bgDark = const Color(0xFF0F172A); // Slate 900
+  final Color _cardDark = const Color(0xFF1E293B); // Slate 800
+  final Color _accentGold = const Color(0xFFF59E0B); // Amber 500
+  final Color _accentSky = const Color(0xFF38BDF8); // Sky 400
+  final Color _textLight = const Color(0xFFF8FAFC); // Slate 50
+  final Color _textDim = const Color(0xFF94A3B8); // Slate 400
+
   bool _notificationsEnabled = true;
 
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDarkMode = themeProvider.isDarkMode;
+    // Note: Authority theme specifically overrides global theme for branding consistency
+    // but we can still toggle dark mode logic if needed for specific internal logic.
+    // For now, enforcing Command Center theme which is inherently dark.
 
     return Scaffold(
-        extendBodyBehindAppBar: true,
-        backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          leading: IconButton(
-            icon: Icon(Icons.arrow_back,
-                color: isDarkMode ? Colors.white70 : Colors.black87),
-            onPressed: () => Navigator.of(context).pop(),
-          ),
-          title: Text(
-            'Authority Settings',
-            style: TextStyle(
-              color: isDarkMode ? Colors.white : Colors.black87,
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          centerTitle: true,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
+      backgroundColor: _bgDark,
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: _accentSky),
+          onPressed: () => Navigator.of(context).pop(),
         ),
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: isDarkMode
-                  ? [const Color(0xFF0A0E21), const Color(0xFF1D2640)]
-                  : [const Color(0xFFF5F5F5), const Color(0xFFE0E0E0)],
-            ),
+        title: Text(
+          'SYSTEM CONFIGURATION',
+          style: TextStyle(
+            color: _textLight,
+            fontSize: 16,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.5,
           ),
-          child: SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+        ),
+        centerTitle: true,
+        backgroundColor: _cardDark,
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildSectionHeader('PREFERENCES'),
+            Container(
+              decoration: BoxDecoration(
+                color: _cardDark,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.white10),
+              ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 20),
-                  Text(
-                    'Authority Settings',
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: isDarkMode ? Colors.white : Colors.black87,
+                  SettingsTile(
+                    icon: Icons.notifications_active_outlined,
+                    title: 'Real-time Alerts',
+                    textColor: _textLight,
+                    iconColor: _accentGold,
+                    trailing: Switch(
+                      value: _notificationsEnabled,
+                      onChanged: (value) =>
+                          setState(() => _notificationsEnabled = value),
+                      activeColor: _accentGold,
+                      inactiveTrackColor: Colors.black26,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Manage your authority preferences',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: isDarkMode ? Colors.white70 : Colors.grey[600],
-                    ),
-                  ),
-                  const SizedBox(height: 30),
-                  Container(
-                    decoration: BoxDecoration(
-                      color:
-                          isDarkMode ? const Color(0xFF1D2640) : Colors.white,
-                      borderRadius: BorderRadius.circular(24),
-                      boxShadow: [
-                        BoxShadow(
-                          color: isDarkMode
-                              ? Colors.black.withOpacity(0.2)
-                              : Colors.grey.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        SettingsTile(
-                          icon: Icons.notifications_outlined,
-                          title: 'Notifications',
-                          textColor: isDarkMode ? Colors.white : Colors.black87,
-                          tileColor: isDarkMode
-                              ? const Color(0xFF2A3256)
-                              : Colors.grey[50]!,
-                          trailing: Switch(
-                            value: _notificationsEnabled,
-                            onChanged: (value) =>
-                                setState(() => _notificationsEnabled = value),
-                            activeColor: const Color(0xFF4B3F9E),
-                          ),
-                        ),
-                        _buildDivider(isDarkMode),
-                        SettingsTile(
-                          icon: Icons.dark_mode_outlined,
-                          title: 'Dark Mode',
-                          textColor: isDarkMode ? Colors.white : Colors.black87,
-                          tileColor: isDarkMode
-                              ? const Color(0xFF2A3256)
-                              : Colors.grey[50]!,
-                          trailing: Switch(
-                            value: isDarkMode,
-                            onChanged: (value) => themeProvider.toggleTheme(),
-                            activeColor: const Color(0xFF4B3F9E),
-                          ),
-                        ),
-                        _buildDivider(isDarkMode),
-                        SettingsTile(
-                          icon: Icons.star_outline,
-                          title: 'Rate App',
-                          textColor: isDarkMode ? Colors.white : Colors.black87,
-                          tileColor: isDarkMode
-                              ? const Color(0xFF2A3256)
-                              : Colors.grey[50]!,
-                          onTap: () => showDialog(
-                              context: context,
-                              builder: (_) => const RatingDialog()),
-                        ),
-                        _buildDivider(isDarkMode),
-                        SettingsTile(
-                          icon: Icons.share_outlined,
-                          title: 'Share App',
-                          textColor: isDarkMode ? Colors.white : Colors.black87,
-                          tileColor: isDarkMode
-                              ? const Color(0xFF2A3256)
-                              : Colors.grey[50]!,
-                        ),
-                        _buildDivider(isDarkMode),
-                        SettingsTile(
-                          icon: Icons.lock_outline,
-                          title: 'Privacy Policy',
-                          textColor: isDarkMode ? Colors.white : Colors.black87,
-                          tileColor: isDarkMode
-                              ? const Color(0xFF2A3256)
-                              : Colors.grey[50]!,
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const PrivacyPolicyScreen())),
-                        ),
-                        _buildDivider(isDarkMode),
-                        SettingsTile(
-                          icon: Icons.description_outlined,
-                          title: 'Terms and Conditions',
-                          textColor: isDarkMode ? Colors.white : Colors.black87,
-                          tileColor: isDarkMode
-                              ? const Color(0xFF2A3256)
-                              : Colors.grey[50]!,
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) =>
-                                      const TermsConditionsScreen())),
-                        ),
-                        _buildDivider(isDarkMode),
-                        SettingsTile(
-                          icon: Icons.cookie_outlined,
-                          title: 'Cookies Policy',
-                          textColor: isDarkMode ? Colors.white : Colors.black87,
-                          tileColor: isDarkMode
-                              ? const Color(0xFF2A3256)
-                              : Colors.grey[50]!,
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const CookiesPolicyScreen())),
-                        ),
-                        _buildDivider(isDarkMode),
-                        SettingsTile(
-                          icon: Icons.contact_support_outlined,
-                          title: 'Contact Support',
-                          textColor: isDarkMode ? Colors.white : Colors.black87,
-                          tileColor: isDarkMode
-                              ? const Color(0xFF2A3256)
-                              : Colors.grey[50]!,
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const ContactScreen())),
-                        ),
-                        _buildDivider(isDarkMode),
-                        SettingsTile(
-                          icon: Icons.feedback_outlined,
-                          title: 'Send Feedback',
-                          textColor: isDarkMode ? Colors.white : Colors.black87,
-                          tileColor: isDarkMode
-                              ? const Color(0xFF2A3256)
-                              : Colors.grey[50]!,
-                          onTap: () => Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (_) => const UserFeedbackScreen())),
-                        ),
-                        _buildDivider(isDarkMode),
-                        SettingsTile(
-                          icon: Icons.logout_outlined,
-                          title: 'Logout',
-                          textColor: isDarkMode ? Colors.white : Colors.black87,
-                          tileColor: isDarkMode
-                              ? const Color(0xFF2A3256)
-                              : Colors.grey[50]!,
-                          onTap: () => LogoutService.showLogoutDialog(context),
-                        ),
-                      ],
+                  _buildDivider(),
+                  SettingsTile(
+                    icon: Icons.brightness_6_outlined,
+                    title: 'Dark Mode Override',
+                    textColor: _textLight,
+                    iconColor: _accentSky,
+                    trailing: Switch(
+                      value: themeProvider.isDarkMode,
+                      onChanged: (value) => themeProvider.toggleTheme(),
+                      activeColor: _accentSky,
+                      inactiveTrackColor: Colors.black26,
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        ));
+            const SizedBox(height: 24),
+            _buildSectionHeader('SUPPORT & LEGAL'),
+            Container(
+              decoration: BoxDecoration(
+                color: _cardDark,
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Column(
+                children: [
+                  SettingsTile(
+                    icon: Icons.star_border_rounded,
+                    title: 'Rate Application',
+                    textColor: _textLight,
+                    iconColor: _textDim,
+                    onTap: () => showDialog(
+                        context: context, builder: (_) => const RatingDialog()),
+                  ),
+                  _buildDivider(),
+                  SettingsTile(
+                    icon: Icons.security_rounded,
+                    title: 'Privacy Protocols',
+                    textColor: _textLight,
+                    iconColor: _textDim,
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const PrivacyPolicyScreen())),
+                  ),
+                  _buildDivider(),
+                  SettingsTile(
+                    icon: Icons.gavel_rounded,
+                    title: 'Terms of Service',
+                    textColor: _textLight,
+                    iconColor: _textDim,
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const TermsConditionsScreen())),
+                  ),
+                  _buildDivider(),
+                  SettingsTile(
+                    icon: Icons.data_usage_rounded,
+                    title: 'Data Policy',
+                    textColor: _textLight,
+                    iconColor: _textDim,
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const CookiesPolicyScreen())),
+                  ),
+                  _buildDivider(),
+                  SettingsTile(
+                    icon: Icons.support_agent_rounded,
+                    title: 'Tech Support',
+                    textColor: _textLight,
+                    iconColor: _textDim,
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const ContactScreen())),
+                  ),
+                  _buildDivider(),
+                  SettingsTile(
+                    icon: Icons.feedback_outlined,
+                    title: 'Submit Log/Feedback',
+                    textColor: _textLight,
+                    iconColor: _textDim,
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const UserFeedbackScreen())),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            _buildSectionHeader('SESSION'),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(4),
+                border: Border.all(color: Colors.red.withOpacity(0.3)),
+              ),
+              child: SettingsTile(
+                icon: Icons.power_settings_new_rounded,
+                title: 'Terminate Session (Logout)',
+                textColor: Colors.red.shade400,
+                iconColor: Colors.red.shade400,
+                onTap: () => LogoutService.showLogoutDialog(context),
+              ),
+            ),
+            const SizedBox(height: 32),
+            Center(
+              child: Text(
+                'System Version 1.0.4',
+                style:
+                    TextStyle(color: _textDim, fontSize: 10, letterSpacing: 2),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  Widget _buildDivider(bool isDarkMode) {
-    return Divider(
+  Widget _buildSectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8, left: 4),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: const Color(0xFF94A3B8), // Slate 400
+          fontWeight: FontWeight.bold,
+          fontSize: 11,
+          letterSpacing: 1.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return const Divider(
         height: 1,
-        color: isDarkMode ? Colors.white10 : Colors.grey[300]!,
-        indent: 60,
-        endIndent: 20);
+        color: Colors.white10,
+        indent: 56, // Align with text start
+        endIndent: 0);
   }
 }
 
@@ -245,7 +232,7 @@ class SettingsTile extends StatelessWidget {
   final IconData icon;
   final String title;
   final Color textColor;
-  final Color tileColor;
+  final Color iconColor;
   final Widget? trailing;
   final VoidCallback? onTap;
 
@@ -254,28 +241,40 @@ class SettingsTile extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.textColor,
-    required this.tileColor,
+    required this.iconColor,
     this.trailing,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: tileColor,
-      child: ListTile(
-        leading: Icon(icon, color: const Color(0xFF4B3F9E)),
-        title: Text(
-          title,
-          style: TextStyle(
-            color: textColor,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Icon(icon, color: iconColor, size: 22),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (trailing != null) trailing!,
+              if (trailing == null && onTap != null)
+                Icon(Icons.chevron_right_rounded,
+                    color: Colors.white24, size: 18),
+            ],
           ),
         ),
-        trailing: trailing,
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       ),
     );
   }
