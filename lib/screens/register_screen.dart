@@ -238,24 +238,56 @@ class _RegisterScreenState extends State<RegisterScreen>
                             border:
                                 Border.all(color: Colors.deepPurple.shade100),
                           ),
-                          child: ListTile(
-                            leading: Icon(Icons.upload_file,
-                                color: Colors.deepPurple),
-                            title: Text('ID Documents (Optional)',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold, fontSize: 14)),
-                            subtitle: Text('Identity verification',
-                                style: TextStyle(fontSize: 12)),
-                            trailing: ElevatedButton(
-                              onPressed: _showDocumentUploadDialog,
-                              child: Text('Upload'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: Colors.deepPurple,
-                                elevation: 0,
-                                side: BorderSide(
-                                    color: Colors.deepPurple.shade200),
-                              ),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            child: Row(
+                              children: [
+                                Icon(Icons.upload_file,
+                                    color: Colors.deepPurple, size: 28),
+                                SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'ID Documents',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          color: Colors.grey[800],
+                                        ),
+                                      ),
+                                      Text(
+                                        '(Optional)',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(width: 8),
+                                ElevatedButton(
+                                  onPressed: _showDocumentUploadDialog,
+                                  child: Text('Upload'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: Colors.deepPurple,
+                                    elevation: 0,
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 8),
+                                    minimumSize: Size(0, 36),
+                                    side: BorderSide(
+                                        color: Colors.deepPurple.shade200),
+                                    textStyle: TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
