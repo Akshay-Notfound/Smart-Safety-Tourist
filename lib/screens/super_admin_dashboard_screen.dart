@@ -147,7 +147,6 @@ class SuperAdminDashboardScreen extends StatelessWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-        appBar: AppBar(
             title: const Text('Super Admin Dashboard'),
             backgroundColor: Colors.redAccent,
             bottom: TabBar(
