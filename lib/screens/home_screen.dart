@@ -76,7 +76,7 @@ class _HomeScreenState extends State<HomeScreen>
     final wasSharing = prefs.getBool('is_sharing_location') ?? false;
 
     if (wasSharing && mounted) {
-      _toggleLocationSharing(true);
+      _toggleLocationSharing(true, showSnackbar: false);
     }
   }
 
@@ -184,7 +184,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  Future<void> _fetchWeatherData() async {
+  Future<void> _fetchWeatherData({bool showSnackbar = true}) async {
     try {
       bool serviceEnabled = await _locationService.serviceEnabled();
       if (!serviceEnabled) {
@@ -211,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen>
       await weatherService.fetchWeatherData(
           currentLocation.latitude!, currentLocation.longitude!);
 
-      if (mounted) {
+      if (mounted && showSnackbar) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Weather data updated successfully!'),
           backgroundColor: Colors.green,
@@ -225,7 +225,7 @@ class _HomeScreenState extends State<HomeScreen>
         ));
       }
     } on TimeoutException {
-      if (mounted) {
+      if (mounted && showSnackbar) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Request timeout. Please try again.'),
           backgroundColor: Colors.red,
@@ -233,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen>
       }
     } catch (e) {
       print('Weather fetch error: $e');
-      if (mounted) {
+      if (mounted && showSnackbar) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           content: Text('Failed to fetch weather data. Please try again.'),
           backgroundColor: Colors.red,
@@ -249,7 +249,7 @@ class _HomeScreenState extends State<HomeScreen>
         duration: Duration(seconds: 2),
       ));
     }
-    await _fetchWeatherData();
+    await _fetchWeatherData(showSnackbar: showSnackbar);
     if (mounted && showSnackbar) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Safety Status Updated based on live weather!'),
@@ -271,7 +271,8 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  void _toggleLocationSharing(bool isSharing) async {
+  void _toggleLocationSharing(bool isSharing,
+      {bool showSnackbar = true}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('is_sharing_location', isSharing);
 
@@ -326,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen>
           });
         }
       });
-      if (mounted) {
+      if (mounted && showSnackbar) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Live location sharing is ON (Background Enabled).'),
             backgroundColor: Colors.green));
@@ -340,7 +341,7 @@ class _HomeScreenState extends State<HomeScreen>
       }
 
       _stopLocationUpdates();
-      if (mounted) {
+      if (mounted && showSnackbar) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('Live location sharing is OFF.'),
             backgroundColor: Colors.grey));
