@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'super_admin_dashboard_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SuperAdminLoginScreen extends StatefulWidget {
   const SuperAdminLoginScreen({super.key});
@@ -30,20 +31,42 @@ class _SuperAdminLoginScreenState extends State<SuperAdminLoginScreen> {
           _passwordController.text.trim() == 'admin123') {
         try {
           // Attempt to sign in to Firebase
+          UserCredential userCred;
           try {
-            await FirebaseAuth.instance.signInWithEmailAndPassword(
+            userCred = await FirebaseAuth.instance.signInWithEmailAndPassword(
               email: 'admin@gmail.com',
               password: 'admin123',
             );
           } on FirebaseAuthException catch (e) {
             // First time admin creation
             if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
-              await FirebaseAuth.instance.createUserWithEmailAndPassword(
+              userCred =
+                  await FirebaseAuth.instance.createUserWithEmailAndPassword(
                 email: 'admin@gmail.com',
                 password: 'admin123',
               );
             } else {
               rethrow;
+            }
+          }
+
+          // Ensure Admin Record Exists in Firestore (Vital for Security Rules)
+          if (userCred.user != null) {
+            final userDoc = await FirebaseFirestore.instance
+                .collection('users')
+                .doc(userCred.user!.uid)
+                .get();
+            if (!userDoc.exists) {
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(userCred.user!.uid)
+                  .set({
+                'fullName': 'Super Administrator',
+                'email': 'admin@gmail.com',
+                'role': 'authority', // Or 'super_admin' if supported
+                'department': 'CENTRAL COMMAND',
+                'createdAt': FieldValue.serverTimestamp(),
+              });
             }
           }
 

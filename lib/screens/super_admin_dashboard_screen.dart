@@ -135,8 +135,33 @@ class SuperAdminDashboardScreen extends StatelessWidget {
 
         if (snapshot.hasError) {
           return Center(
-              child: Text('DATA CORRUPTION DETECTED',
-                  style: TextStyle(color: Colors.red)));
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red, size: 48),
+                  const SizedBox(height: 16),
+                  Text(
+                    'DATA CORRUPTION DETECTED',
+                    style: TextStyle(
+                        color: Colors.red,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Hex Dump: ${snapshot.error}',
+                    style: TextStyle(
+                        color: _textPlatinum.withOpacity(0.5),
+                        fontFamily: 'Courier',
+                        fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          );
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
