@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+
 import 'package:video_player/video_player.dart';
-import '../services/theme_provider.dart';
+
 import '../services/knowledge_base_service.dart';
 
 class SmartAssistantScreen extends StatefulWidget {
@@ -97,130 +97,168 @@ class _SmartAssistantScreenState extends State<SmartAssistantScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-    final isDarkMode = themeProvider.isDarkMode;
+    // Note: Theme provider is available but we are forcing a specific style for consistency
+    // with the rest of the redesigned app (Home/Login/Register).
 
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Smart Assistant'),
-        backgroundColor:
-            isDarkMode ? const Color(0xFF1D2640) : Colors.deepPurple,
+        title: const Text('Smart Assistant',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: Column(
-        children: [
-          if (_videoController.value.isInitialized)
-            Container(
-              height: 150,
-              width: double.infinity,
-              color: isDarkMode ? const Color(0xFF1D2640) : Colors.deepPurple,
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: _videoController.value.aspectRatio,
-                  child: VideoPlayer(_videoController),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.deepPurple.shade900,
+              Colors.deepPurpleAccent.shade200
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              if (_videoController.value.isInitialized)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      height: 150,
+                      width: double.infinity,
+                      decoration: const BoxDecoration(color: Colors.black12),
+                      child: AspectRatio(
+                        aspectRatio: _videoController.value.aspectRatio,
+                        child: VideoPlayer(_videoController),
+                      ),
+                    ),
+                  ),
+                ),
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: _messages.length,
+                  itemBuilder: (context, index) {
+                    final message = _messages[index];
+                    final isUser = message['role'] == 'user';
+                    return Align(
+                      alignment:
+                          isUser ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Container(
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: isUser
+                              ? Colors.white
+                                  .withOpacity(0.2) // Glass effect for User
+                              : Colors.white.withOpacity(
+                                  0.1), // Glass effect for Assistant
+                          borderRadius: BorderRadius.only(
+                            topLeft: const Radius.circular(20),
+                            topRight: const Radius.circular(20),
+                            bottomLeft: Radius.circular(isUser ? 20 : 4),
+                            bottomRight: Radius.circular(isUser ? 4 : 20),
+                          ),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.1),
+                            width: 1,
+                          ),
+                        ),
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width * 0.75,
+                        ),
+                        child: Text(
+                          message['message']!,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
-            ),
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
-              itemBuilder: (context, index) {
-                final message = _messages[index];
-                final isUser = message['role'] == 'user';
-                return Align(
-                  alignment:
-                      isUser ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: isUser
-                          ? Colors.deepPurple
-                          : (isDarkMode
-                              ? const Color(0xFF2A3256)
-                              : Colors.grey[200]),
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(16),
-                        topRight: const Radius.circular(16),
-                        bottomLeft: Radius.circular(isUser ? 16 : 4),
-                        bottomRight: Radius.circular(isUser ? 4 : 16),
+              if (_isTyping)
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: Row(
+                    children: [
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white70,
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      message['message']!,
-                      style: TextStyle(
-                        color: isUser
-                            ? Colors.white
-                            : (isDarkMode ? Colors.white : Colors.black87),
-                        fontSize: 16,
+                      const SizedBox(width: 12),
+                      Text(
+                        "Consulting Knowledge Base...",
+                        style: TextStyle(color: Colors.white.withOpacity(0.7)),
                       ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-          if (_isTyping)
-            const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: Text("Consulting Knowledge Base...",
-                  style: TextStyle(color: Colors.grey)),
-            ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDarkMode ? const Color(0xFF1D2640) : Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, -4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageController,
-                    decoration: InputDecoration(
-                      hintText: 'Ask about safety, weather, etc...',
-                      hintStyle: TextStyle(
-                        color: isDarkMode ? Colors.white54 : Colors.grey[600],
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: isDarkMode
-                          ? const Color(0xFF2A3256)
-                          : Colors.grey[100],
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 12,
-                      ),
-                    ),
-                    style: TextStyle(
-                      color: isDarkMode ? Colors.white : Colors.black87,
-                    ),
-                    onSubmitted: (_) => _sendMessage(),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 12),
-                FloatingActionButton(
-                  onPressed: _sendMessage,
-                  backgroundColor: Colors.deepPurple,
-                  mini: true,
-                  child: const Icon(Icons.send, color: Colors.white),
+              Container(
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(color: Colors.white.withOpacity(0.2)),
                 ),
-              ],
-            ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        decoration: InputDecoration(
+                          hintText: 'Ask about safety, weather...',
+                          hintStyle: TextStyle(
+                            color: Colors.white.withOpacity(0.5),
+                          ),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                        ),
+                        style: const TextStyle(
+                          color: Colors.white,
+                        ),
+                        cursorColor: Colors.white,
+                        onSubmitted: (_) => _sendMessage(),
+                      ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white, // Contrast button
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        onPressed: _sendMessage,
+                        icon: const Icon(Icons.send_rounded),
+                        color: Colors.deepPurple.shade700,
+                        tooltip: 'Send Message',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

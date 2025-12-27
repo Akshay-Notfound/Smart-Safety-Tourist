@@ -2,8 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter/foundation.dart'; // For kIsWeb, Uint8List
-import 'dart:typed_data'; // For Uint8List
+import 'dart:io';
 import '../services/cloudinary_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
@@ -274,316 +273,321 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  InputDecoration _buildInputDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      prefixIcon: Icon(icon, color: Colors.deepPurple),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.grey.shade300),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.deepPurple, width: 2),
+      ),
+      filled: true,
+      fillColor: Colors.grey[50],
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Edit Profile'),
-        backgroundColor: Colors.deepPurple.shade400,
+        title: const Text('Edit Profile',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            icon: const Icon(Icons.save),
+            icon: const Icon(Icons.check_circle_outline, size: 28),
             onPressed: _isSaving ? null : _saveProfile,
+            tooltip: 'Save Changes',
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _isAuthority ? 'Authority Profile' : 'Personal Information',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Update your profile details',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Profile Picture Section
-              Center(
-                child: Stack(
-                  children: [
-                    GestureDetector(
-                      onTap: _isSaving ? null : _showImagePickerOptions,
-                      child: ClipOval(
-                        child: SizedBox(
-                          width: 100,
-                          height: 100,
-                          child: _profileImage != null
-                              ? FutureBuilder<Uint8List>(
-                                  future: _profileImage!.readAsBytes(),
-                                  builder: (context, snapshot) {
-                                    if (snapshot.connectionState ==
-                                            ConnectionState.done &&
-                                        snapshot.hasData) {
-                                      return Image.memory(
-                                        snapshot.data!,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                          return const Center(
-                                              child: Icon(Icons.error,
-                                                  color: Colors.red));
-                                        },
-                                      );
-                                    } else {
-                                      return const Center(
-                                          child: CircularProgressIndicator());
-                                    }
-                                  },
-                                )
-                              : (_profileImageUrl != null &&
-                                      _profileImageUrl!.isNotEmpty
-                                  ? Image.network(
-                                      _profileImageUrl!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) {
-                                        return Center(
-                                          child: Text(
-                                            _nameController.text.isNotEmpty
-                                                ? _nameController.text[0]
-                                                    .toUpperCase()
-                                                : 'T',
-                                            style: TextStyle(
-                                              fontSize: 32,
-                                              color: Colors.deepPurple.shade800,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                    )
-                                  : Center(
-                                      child: Text(
-                                        _nameController.text.isNotEmpty
-                                            ? _nameController.text[0]
-                                                .toUpperCase()
-                                            : 'T',
-                                        style: TextStyle(
-                                          fontSize: 32,
-                                          color: Colors.deepPurple.shade800,
-                                        ),
-                                      ),
-                                    )),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: GestureDetector(
-                        onTap: _isSaving ? null : _showImagePickerOptions,
-                        child: Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.deepPurple,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: const Icon(
-                            Icons.edit,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Debug information
-              if (_profileImage != null)
-                const Text(
-                  'Local image selected',
-                  style: TextStyle(
-                    color: Colors.green,
-                    fontSize: 12,
-                  ),
-                  textAlign: TextAlign.center,
-                )
-              else if (_profileImageUrl != null && _profileImageUrl!.isNotEmpty)
-                const Text(
-                  'Existing profile image loaded',
-                  style: TextStyle(
-                    color: Colors.blue,
-                    fontSize: 12,
-                  ),
-                  textAlign: TextAlign.center,
-                )
-              else
-                const Text(
-                  'No profile image set',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 12,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              const SizedBox(height: 16),
-
-              // Name Field
-              TextFormField(
-                controller: _nameController,
-                decoration: InputDecoration(
-                  labelText: 'Full Name',
-                  prefixIcon: const Icon(Icons.person_outline),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your full name';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Email Field
-              TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email Address',
-                  prefixIcon: const Icon(Icons.email_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                keyboardType: TextInputType.emailAddress,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your email';
-                  }
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                      .hasMatch(value)) {
-                    return 'Please enter a valid email';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Phone Number Field
-              TextFormField(
-                controller: _phoneController,
-                decoration: InputDecoration(
-                  labelText: 'Phone Number',
-                  prefixIcon: const Icon(Icons.phone_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                keyboardType: TextInputType.phone,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your phone number';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Emergency Contact / Designation Field
-              TextFormField(
-                controller: _emergencyController,
-                decoration: InputDecoration(
-                  labelText: _isAuthority
-                      ? 'Designation / Division'
-                      : 'Emergency Contact',
-                  prefixIcon: Icon(_isAuthority
-                      ? Icons.work_outline
-                      : Icons.contact_phone_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                keyboardType:
-                    _isAuthority ? TextInputType.text : TextInputType.phone,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return _isAuthority
-                        ? 'Please enter designation'
-                        : 'Please enter emergency contact';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 16),
-
-              // Aadhaar / Authority ID Field
-              TextFormField(
-                controller: _aadharController,
-                decoration: InputDecoration(
-                  labelText: _isAuthority
-                      ? 'Authority Badge ID'
-                      : 'Aadhaar / Passport Number',
-                  prefixIcon: const Icon(Icons.badge_outlined),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                keyboardType: TextInputType.text, // Allow text for IDs
-              ),
-              const SizedBox(height: 32),
-
-              // Save Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: _isSaving ? null : _saveProfile,
-                  icon: _isSaving
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Icon(Icons.save),
-                  label: Text(_isSaving ? 'Saving...' : 'Save Changes'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 16),
-
-              // Cancel Button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Colors.deepPurple.shade900,
+              Colors.deepPurpleAccent.shade200
             ],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20.0),
+              child: Card(
+                elevation: 8,
+                shadowColor: Colors.black26,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24)),
+                color: Colors.white.withOpacity(0.95),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _isAuthority
+                              ? 'Authority Profile'
+                              : 'Personal Information',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple.shade800,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Update your details below',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Profile Picture Section
+                        Stack(
+                          children: [
+                            GestureDetector(
+                              onTap: _isSaving ? null : _showImagePickerOptions,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                      color: Colors.deepPurple.shade200,
+                                      width: 4),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black12,
+                                      blurRadius: 10,
+                                      spreadRadius: 2,
+                                    )
+                                  ],
+                                ),
+                                child: CircleAvatar(
+                                  radius: 60,
+                                  backgroundColor: Colors.white,
+                                  backgroundImage: _profileImage != null
+                                      ? FileImage(File(_profileImage!.path))
+                                      : (_profileImageUrl != null &&
+                                              _profileImageUrl!.isNotEmpty
+                                          ? NetworkImage(_profileImageUrl!)
+                                          : null) as ImageProvider?,
+                                  child: (_profileImage == null &&
+                                          (_profileImageUrl == null ||
+                                              _profileImageUrl!.isEmpty))
+                                      ? Text(
+                                          _nameController.text.isNotEmpty
+                                              ? _nameController.text[0]
+                                                  .toUpperCase()
+                                              : 'T',
+                                          style: TextStyle(
+                                            fontSize: 48,
+                                            color: Colors.deepPurple.shade700,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: GestureDetector(
+                                onTap:
+                                    _isSaving ? null : _showImagePickerOptions,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.deepPurple,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                        color: Colors.white, width: 3),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black26,
+                                        blurRadius: 6,
+                                      )
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 32),
+
+                        // Name Field
+                        TextFormField(
+                          controller: _nameController,
+                          decoration: _buildInputDecoration(
+                              'Full Name', Icons.person_outline),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your full name';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Email Field
+                        TextFormField(
+                          controller: _emailController,
+                          decoration: _buildInputDecoration(
+                              'Email', Icons.email_outlined),
+                          keyboardType: TextInputType.emailAddress,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your email';
+                            }
+                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                .hasMatch(value)) {
+                              return 'Please enter a valid email';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Phone Number Field
+                        TextFormField(
+                          controller: _phoneController,
+                          decoration: _buildInputDecoration(
+                              'Phone Number', Icons.phone_outlined),
+                          keyboardType: TextInputType.phone,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your phone number';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Emergency Contact / Designation Field
+                        TextFormField(
+                          controller: _emergencyController,
+                          decoration: _buildInputDecoration(
+                            _isAuthority
+                                ? 'Designation / Division'
+                                : 'Emergency Contact',
+                            _isAuthority
+                                ? Icons.work_outline
+                                : Icons.contact_phone_outlined,
+                          ),
+                          keyboardType: _isAuthority
+                              ? TextInputType.text
+                              : TextInputType.phone,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return _isAuthority
+                                  ? 'Please enter designation'
+                                  : 'Please enter emergency contact';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Aadhaar / Authority ID Field
+                        TextFormField(
+                          controller: _aadharController,
+                          decoration: _buildInputDecoration(
+                            _isAuthority
+                                ? 'Authority Badge ID'
+                                : 'Aadhaar / Passport Number',
+                            Icons.badge_outlined,
+                          ),
+                          keyboardType: TextInputType.text,
+                        ),
+                        const SizedBox(height: 40),
+
+                        // Save Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: ElevatedButton(
+                            onPressed: _isSaving ? null : _saveProfile,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.deepPurple,
+                              foregroundColor: Colors.white,
+                              elevation: 5,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              shadowColor: Colors.deepPurple.shade200,
+                            ),
+                            child: _isSaving
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white),
+                                    ),
+                                  )
+                                : const Text(
+                                    'SAVE CHANGES',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.2,
+                                    ),
+                                  ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Cancel Button
+                        SizedBox(
+                          width: double.infinity,
+                          height: 54,
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.grey.shade600,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ),
