@@ -289,6 +289,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       filled: true,
       fillColor: Colors.grey[50],
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      labelStyle: TextStyle(color: Colors.grey.shade700),
+      hintStyle: TextStyle(color: Colors.grey.shade400),
     );
   }
 
@@ -440,6 +442,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         // Name Field
                         TextFormField(
                           controller: _nameController,
+                          style: const TextStyle(color: Colors.black87),
                           decoration: _buildInputDecoration(
                               'Full Name', Icons.person_outline),
                           validator: (value) {
@@ -454,6 +457,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         // Email Field
                         TextFormField(
                           controller: _emailController,
+                          style: const TextStyle(color: Colors.black87),
                           decoration: _buildInputDecoration(
                               'Email', Icons.email_outlined),
                           keyboardType: TextInputType.emailAddress,
@@ -473,6 +477,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         // Phone Number Field
                         TextFormField(
                           controller: _phoneController,
+                          style: const TextStyle(color: Colors.black87),
                           decoration: _buildInputDecoration(
                               'Phone Number', Icons.phone_outlined),
                           keyboardType: TextInputType.phone,
@@ -488,6 +493,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         // Emergency Contact / Designation Field
                         TextFormField(
                           controller: _emergencyController,
+                          style: const TextStyle(color: Colors.black87),
                           decoration: _buildInputDecoration(
                             _isAuthority
                                 ? 'Designation / Division'
@@ -513,6 +519,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         // Aadhaar / Authority ID Field
                         TextFormField(
                           controller: _aadharController,
+                          style: const TextStyle(color: Colors.black87),
                           decoration: _buildInputDecoration(
                             _isAuthority
                                 ? 'Authority Badge ID'
