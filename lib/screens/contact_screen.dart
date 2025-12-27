@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_tourist_app/services/theme_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ContactScreen extends StatefulWidget {
@@ -14,19 +16,25 @@ class _ContactScreenState extends State<ContactScreen> {
   final _emailController = TextEditingController();
   final _messageController = TextEditingController();
 
-  // Contact Details
   final String _supportEmail = 'rathod4529@gmail.com';
   final String _supportPhone = '+918454842474';
   final String _websiteUrl = 'https://yourwebsite.com';
   final String _whatsappUrl = 'https://wa.me/message/GSUE3AWAGR4AD1';
 
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _messageController.dispose();
+    super.dispose();
+  }
+
   Future<void> _launchUrl(String urlString) async {
     final Uri url = Uri.parse(urlString);
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not launch $urlString')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('UPLINK FAILED: $urlString')));
       }
     }
   }
@@ -35,24 +43,20 @@ class _ContactScreenState extends State<ContactScreen> {
     final Uri emailLaunchUri = Uri(
       scheme: 'mailto',
       path: _supportEmail,
-      query: _encodeQueryParameters(<String, String>{
-        'subject': 'Support Request - Smart Tourist App',
-      }),
+      query: _encodeQueryParameters(
+          <String, String>{'subject': 'Support Request - Smart Tourist App'}),
     );
     await _launchUrl(emailLaunchUri.toString());
   }
 
   Future<void> _launchPhone() async {
-    final Uri phoneLaunchUri = Uri(
-      scheme: 'tel',
-      path: _supportPhone,
-    );
+    final Uri phoneLaunchUri = Uri(scheme: 'tel', path: _supportPhone);
     await _launchUrl(phoneLaunchUri.toString());
   }
 
   String? _encodeQueryParameters(Map<String, String> params) {
     return params.entries
-        .map((MapEntry<String, String> e) =>
+        .map((e) =>
             '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
         .join('&');
   }
@@ -65,8 +69,6 @@ class _ContactScreenState extends State<ContactScreen> {
 
       final whatsappMessage = 'Name: $name\nEmail: $email\nMessage: $message';
       final encodedMessage = Uri.encodeComponent(whatsappMessage);
-
-      // Use the support phone number without the '+' for the wa.me link
       final phoneNumber = _supportPhone.replaceAll('+', '');
       final whatsappUrl = 'https://wa.me/$phoneNumber?text=$encodedMessage';
 
@@ -79,293 +81,270 @@ class _ContactScreenState extends State<ContactScreen> {
   }
 
   @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _messageController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    // Force Dark Professional Theme
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode;
+
+    final bgColor =
+        isDarkMode ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC);
+    final cardColor = isDarkMode ? const Color(0xFF1E293B) : Colors.white;
+    final textColor =
+        isDarkMode ? const Color(0xFFF1F5F9) : const Color(0xFF1E293B);
+    final accentColor =
+        isDarkMode ? const Color(0xFF38BDF8) : const Color(0xFF0284C7);
+    final inputFill =
+        isDarkMode ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9);
+
     return Scaffold(
+      backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text('Contact Us'),
-        backgroundColor: Colors.deepPurple.shade400,
-        foregroundColor: Colors.white,
+        title: Text('COMMUNICATION CENTER',
+            style: TextStyle(
+                color: textColor,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.5,
+                fontSize: 16)),
+        centerTitle: true,
+        backgroundColor: bgColor,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new, color: textColor, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1.0),
+          child: Container(
+              color: isDarkMode ? Colors.white10 : Colors.black12, height: 1.0),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header Section
-            const Text(
-              'Get in Touch',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.deepPurple,
+            Text('DIRECT CONTACT CHANNELS',
+                style: TextStyle(
+                    color: accentColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2)),
+            const SizedBox(height: 16),
+
+            // Info Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(4),
+                  border:
+                      Border(left: BorderSide(color: accentColor, width: 4)),
+                  boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('SUPPORT PROTOCOLS',
+                      style: TextStyle(
+                          color: textColor, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text(
+                      'Use these channels for critical support, partnerships, or reporting system anomalies. Response times may vary based on priority level.',
+                      style: TextStyle(
+                          color: textColor.withOpacity(0.7),
+                          fontSize: 12,
+                          height: 1.5)),
+                ],
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'If you have questions, need support, or want to get in touch with us, feel free to contact anytime. We’re here to help and respond as quickly as possible.',
-              style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
             ),
             const SizedBox(height: 24),
 
-            // "You Can Contact Us For" Section
-            const Text(
-              'You Can Contact Us For:',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+            // Grid of Contact Options
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              childAspectRatio: 1.3,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              children: [
+                _buildContactCard(
+                    icon: Icons.email_outlined,
+                    label: 'EMAIL UPLINK',
+                    action: _launchEmail,
+                    color: cardColor,
+                    textColor: textColor,
+                    accentColor: accentColor),
+                _buildContactCard(
+                    icon: Icons.call_outlined,
+                    label: 'VOICE LINE',
+                    action: _launchPhone,
+                    color: cardColor,
+                    textColor: textColor,
+                    accentColor: Colors.green),
+                _buildContactCard(
+                    icon: Icons.chat_bubble_outline,
+                    label: 'WHATSAPP',
+                    action: () => _launchUrl(_whatsappUrl),
+                    color: cardColor,
+                    textColor: textColor,
+                    accentColor: Colors.greenAccent),
+                _buildContactCard(
+                    icon: Icons.language,
+                    label: 'WEB PORTAL',
+                    action: () => _launchUrl(_websiteUrl),
+                    color: cardColor,
+                    textColor: textColor,
+                    accentColor: Colors.purpleAccent),
+              ],
             ),
-            const SizedBox(height: 8),
-            _buildBulletPoint('App support or troubleshooting'),
-            _buildBulletPoint('Feature request or suggestions'),
-            _buildBulletPoint('Business partnerships'),
-            _buildBulletPoint('Report bugs or issues'),
-            _buildBulletPoint('General questions'),
-            const SizedBox(height: 24),
 
-            // Contact Details Section
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12)),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
+            const SizedBox(height: 32),
+            Text('SECURE TRANSMISSION FORM',
+                style: TextStyle(
+                    color: accentColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2)),
+            const SizedBox(height: 16),
+
+            Form(
+              key: _formKey,
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: Colors.white10),
+                ),
                 child: Column(
                   children: [
-                    _buildContactRow(Icons.email, 'Email', _supportEmail),
-                    const Divider(),
-                    _buildContactRow(Icons.phone, 'Phone', _supportPhone),
-                    const Divider(),
-                    _buildContactRow(Icons.language, 'Website', _websiteUrl),
-                    const Divider(),
-                    _buildContactRow(
-                        Icons.location_on, 'Location', 'Nanded, Maharashtra'),
+                    _buildTextField(
+                        controller: _nameController,
+                        hint: 'IDENTITY / NAME',
+                        icon: Icons.person_outline,
+                        bgColor: inputFill,
+                        textColor: textColor,
+                        borderColor: accentColor),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                        controller: _emailController,
+                        hint: 'RETURN ADDRESS (EMAIL)',
+                        icon: Icons.alternate_email,
+                        bgColor: inputFill,
+                        textColor: textColor,
+                        borderColor: accentColor),
+                    const SizedBox(height: 16),
+                    _buildTextField(
+                        controller: _messageController,
+                        hint: 'TRANSMISSION MESSAGE',
+                        icon: Icons.short_text,
+                        maxLines: 4,
+                        bgColor: inputFill,
+                        textColor: textColor,
+                        borderColor: accentColor),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        onPressed: _submitForm,
+                        icon: Icon(Icons.send, color: cardColor, size: 18),
+                        label: Text('INITIATE TRANSMISSION',
+                            style: TextStyle(
+                                color: cardColor,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.5)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: accentColor,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4)),
+                          elevation: 0,
+                        ),
+                      ),
+                    )
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 24),
 
-            // Action Buttons
-            Wrap(
-              spacing: 12.0,
-              runSpacing: 12.0,
-              alignment: WrapAlignment.spaceEvenly,
-              children: [
-                _buildActionButton(
-                  icon: Icons.email,
-                  label: 'Email',
-                  color: Colors.redAccent,
-                  onTap: _launchEmail,
-                ),
-                _buildActionButton(
-                  icon: Icons.call,
-                  label: 'Call',
-                  color: Colors.blue,
-                  onTap: _launchPhone,
-                ),
-                _buildActionButton(
-                  icon: Icons.chat,
-                  label: 'WhatsApp',
-                  color: Colors.green,
-                  onTap: () => _launchUrl(_whatsappUrl),
-                ),
-                _buildActionButton(
-                  icon: Icons.language,
-                  label: 'Website',
-                  color: Colors.purple,
-                  onTap: () => _launchUrl(_websiteUrl),
-                ),
-              ],
-            ),
-            const SizedBox(height: 32),
-
-            // Contact Form
-            const Text(
-              'Send us a Message',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Form(
-              key: _formKey,
-              child: Column(
-                children: [
-                  TextFormField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      labelText: 'Your Name',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: const Icon(Icons.person),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your name';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: InputDecoration(
-                      labelText: 'Your Email',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: const Icon(Icons.email),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your email';
-                      }
-                      if (!value.contains('@')) {
-                        return 'Please enter a valid email';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _messageController,
-                    decoration: InputDecoration(
-                      labelText: 'Message',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: const Icon(Icons.message),
-                      alignLabelWithHint: true,
-                    ),
-                    maxLines: 4,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your message';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _submitForm,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.deepPurple.shade400,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Send Message',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
             const SizedBox(height: 30),
+            Center(
+                child: Text('SECURE CONNECTION ESTABLISHED',
+                    style: TextStyle(
+                        color: Colors.green.withOpacity(0.5),
+                        fontSize: 10,
+                        letterSpacing: 2))),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBulletPoint(String text) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        children: [
-          const Icon(Icons.check_circle, color: Colors.deepPurple, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              style: const TextStyle(fontSize: 16),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContactRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          Icon(icon, color: Colors.deepPurple.shade300),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
-              ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildContactCard(
+      {required IconData icon,
+      required String label,
+      required VoidCallback action,
+      required Color color,
+      required Color textColor,
+      required Color accentColor}) {
     return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      onTap: action,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+          color: color,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: accentColor.withOpacity(0.3)),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 28),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Icon(icon, color: accentColor, size: 32),
+            const SizedBox(height: 8),
+            Text(label,
+                style: TextStyle(
+                    color: textColor,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                    letterSpacing: 1.2)),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hint,
+    required IconData icon,
+    int maxLines = 1,
+    required Color bgColor,
+    required Color textColor,
+    required Color borderColor,
+  }) {
+    return TextFormField(
+      controller: controller,
+      maxLines: maxLines,
+      style: TextStyle(color: textColor, fontWeight: FontWeight.w500),
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon, color: borderColor.withOpacity(0.7), size: 18),
+        hintText: hint,
+        hintStyle: TextStyle(
+            color: textColor.withOpacity(0.3),
+            fontSize: 12,
+            letterSpacing: 1.2),
+        filled: true,
+        fillColor: bgColor,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(4),
+            borderSide: BorderSide(color: borderColor, width: 1.5)),
+      ),
+      validator: (val) =>
+          (val == null || val.isEmpty) ? 'FIELD REQUIRED' : null,
     );
   }
 }

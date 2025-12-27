@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'authority_register_screen.dart';
-import 'authority_dashboard_screen.dart';
-import '../services/logout_service.dart';
 
 class AuthorityLoginScreen extends StatefulWidget {
   const AuthorityLoginScreen({super.key});

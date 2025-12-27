@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../services/cloudinary_service.dart';
+import 'package:provider/provider.dart';
+import '../services/theme_provider.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final Map<String, dynamic> userData;
@@ -21,8 +23,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
-  late TextEditingController _emergencyController;
-  late TextEditingController _aadharController;
+  late TextEditingController _emergencyController; // Authority: Designation
+  late TextEditingController _aadharController; // Authority: ID
 
   bool _isSaving = false;
   bool _isAuthority = false;
@@ -74,156 +76,42 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       );
 
       if (pickedFile != null) {
-        final length = await pickedFile.length();
-        print('Image picked: ${pickedFile.path}, Size: $length bytes');
-        setState(() {
-          _profileImage = pickedFile;
-        });
-
-        // Show a preview message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Image selected. Tap Save to upload.'),
-              backgroundColor: Colors.blue,
-            ),
-          );
-        }
-      } else {
-        // User cancelled the picker
-        print('No image selected');
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('No image selected'),
-              backgroundColor: Colors.orange,
-            ),
-          );
-        }
+        setState(() => _profileImage = pickedFile);
       }
     } catch (e) {
-      print('Error picking image: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error picking image: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Error selecting image: $e'),
+            backgroundColor: Colors.red));
       }
     }
   }
 
-  void _showImagePickerOptions() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera),
-              title: const Text('Take a Photo'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickProfileImage(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Choose from Gallery'),
-              onTap: () {
-                Navigator.pop(context);
-                _pickProfileImage(ImageSource.gallery);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<String?> _uploadProfileImage() async {
-    if (_profileImage == null) return _profileImageUrl;
-
-    try {
-      final response = await CloudinaryService.uploadFile(_profileImage!);
-
-      if (response != null) {
-        final secureUrl = CloudinaryService.getSecureUrl(response);
-        if (secureUrl != null) {
-          return secureUrl;
-        }
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to upload profile image'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      print('Error uploading profile image: $e');
-      if (mounted) {
-        // Extract error message if it's a Cloudinary error
-        String errorMessage = 'Error uploading profile image';
-        if (e.toString().contains('Upload failed:')) {
-          // Try to parse the JSON error from Cloudinary if possible, or just show the status
-          if (e.toString().contains('"message":')) {
-            final match =
-                RegExp(r'"message":"([^"]+)"').firstMatch(e.toString());
-            if (match != null) {
-              errorMessage = 'Upload failed: ${match.group(1)}';
-            } else {
-              errorMessage = e.toString().replaceAll('Exception: ', '');
-            }
-          } else {
-            errorMessage = e.toString().replaceAll('Exception: ', '');
-          }
-        } else {
-          errorMessage = 'Error: $e';
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
-      }
-    }
-
-    return null;
-  }
-
-  Future<void> _saveProfile() async {
+  Future<void> _updateProfile() async {
     if (!_formKey.currentState!.validate()) return;
+    if (user == null) return;
 
-    setState(() {
-      _isSaving = true;
-    });
+    setState(() => _isSaving = true);
+
+    String? imageUrl = _profileImageUrl;
 
     try {
-      // Upload profile image if selected
-      String? profileImageUrl = _profileImageUrl;
       if (_profileImage != null) {
-        profileImageUrl = await _uploadProfileImage();
-        if (profileImageUrl == null) {
-          // If image upload failed, don't save the profile
-          return;
+        final response = await CloudinaryService.uploadFile(_profileImage!);
+        final secureUrl =
+            response != null ? CloudinaryService.getSecureUrl(response) : null;
+
+        if (secureUrl != null) {
+          imageUrl = secureUrl;
+        } else {
+          throw Exception('Image upload failed');
         }
       }
 
-      // Prepare update data
       final updateData = {
         'fullName': _nameController.text.trim(),
-        'email': _emailController.text.trim(),
         'phoneNumber': _phoneController.text.trim(),
+        'profileImage': imageUrl,
       };
 
       if (_isAuthority) {
@@ -234,11 +122,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         updateData['aadharNumber'] = _aadharController.text.trim();
       }
 
-      // Add profile image URL if available
-      if (profileImageUrl != null && profileImageUrl.isNotEmpty) {
-        updateData['profileImage'] = profileImageUrl;
-      }
-
       await FirebaseFirestore.instance
           .collection('users')
           .doc(user!.uid)
@@ -247,357 +130,322 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Profile updated successfully!'),
-            backgroundColor: Colors.green,
-          ),
+              content: Text('Profile Updated Successfully'),
+              backgroundColor: Colors.green),
         );
-
-        // Go back to previous screen
-        Navigator.pop(context, true);
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error updating profile: $e'),
-            backgroundColor: Colors.red,
-          ),
+              content: Text('Update failed: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
-      if (mounted) {
-        setState(() {
-          _isSaving = false;
-        });
-      }
+      if (mounted) setState(() => _isSaving = false);
     }
-  }
-
-  InputDecoration _buildInputDecoration(String label, IconData icon) {
-    return InputDecoration(
-      labelText: label,
-      prefixIcon: Icon(icon, color: Colors.deepPurple),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.grey.shade300),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.deepPurple, width: 2),
-      ),
-      filled: true,
-      fillColor: Colors.grey[50],
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      labelStyle: TextStyle(color: Colors.grey.shade700),
-      hintStyle: TextStyle(color: Colors.grey.shade400),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
+    // Determine Theme Colors based on Role
+    final isAuthorityMode = _isAuthority;
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDarkMode = themeProvider.isDarkMode || isAuthorityMode;
+
+    Color bgColor = isAuthorityMode
+        ? const Color(0xFF0F172A)
+        : (isDarkMode ? const Color(0xFF0A0E21) : const Color(0xFFF5F5F5));
+    Color cardColor = isAuthorityMode
+        ? const Color(0xFF1E293B)
+        : (isDarkMode ? const Color(0xFF1D2640) : Colors.white);
+    Color textColor = isAuthorityMode
+        ? const Color(0xFFF8FAFC)
+        : (isDarkMode ? Colors.white : Colors.black87);
+    Color labelColor = isAuthorityMode
+        ? const Color(0xFF94A3B8)
+        : (isDarkMode ? Colors.white70 : Colors.grey[600]!);
+    Color accentColor =
+        isAuthorityMode ? const Color(0xFFF59E0B) : Colors.deepPurple;
+    Color fieldFill = isAuthorityMode
+        ? const Color(0xFF0F172A)
+        : (isDarkMode ? Colors.black12 : Colors.grey[50]!);
+    Color iconColor =
+        isAuthorityMode ? const Color(0xFF38BDF8) : Colors.deepPurple.shade300;
+
     return Scaffold(
-      extendBodyBehindAppBar: true,
+      backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text('Edit Profile',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        backgroundColor: Colors.transparent,
+        title: Text(isAuthorityMode ? 'OFFICIAL PROFILE' : 'Edit Profile',
+            style: TextStyle(
+                color: textColor,
+                fontWeight: FontWeight.bold,
+                fontSize: isAuthorityMode ? 16 : 20,
+                letterSpacing: isAuthorityMode ? 1.5 : 0)),
+        backgroundColor: isAuthorityMode ? cardColor : Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.check_circle_outline, size: 28),
-            onPressed: _isSaving ? null : _saveProfile,
-            tooltip: 'Save Changes',
-          ),
-        ],
+        centerTitle: true,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: textColor),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.deepPurple.shade900,
-              Colors.deepPurpleAccent.shade200
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            children: [
+              // Profile Image
+              Center(
+                child: Stack(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: accentColor, width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                                color: accentColor.withOpacity(0.2),
+                                blurRadius: 15,
+                                spreadRadius: 2)
+                          ]),
+                      child: CircleAvatar(
+                        radius: 60,
+                        backgroundColor: cardColor,
+                        backgroundImage: _profileImage != null
+                            ? FileImage(File(_profileImage!.path))
+                            : (_profileImageUrl != null &&
+                                    _profileImageUrl!.isNotEmpty)
+                                ? NetworkImage(_profileImageUrl!)
+                                    as ImageProvider
+                                : null,
+                        child: (_profileImage == null &&
+                                (_profileImageUrl == null ||
+                                    _profileImageUrl!.isEmpty))
+                            ? Icon(Icons.person, size: 60, color: labelColor)
+                            : null,
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: () => _showImagePicker(context, isDarkMode),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: accentColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: bgColor, width: 2),
+                          ),
+                          child: const Icon(Icons.camera_alt,
+                              color: Colors.white, size: 20),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 30),
+
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: cardColor,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4))
+                  ],
+                  border: isAuthorityMode
+                      ? Border.all(color: Colors.white10)
+                      : null,
+                ),
+                child: Column(
+                  children: [
+                    _buildTextField(
+                      controller: _nameController,
+                      label: 'Full Name',
+                      icon: Icons.person_outline,
+                      textColor: textColor,
+                      labelColor: labelColor,
+                      fillColor: fieldFill,
+                      iconColor: iconColor,
+                      borderColor: accentColor,
+                    ),
+                    const SizedBox(height: 20),
+                    _buildTextField(
+                      controller: _emailController,
+                      label: 'Email',
+                      icon: Icons.email_outlined,
+                      readOnly: true,
+                      textColor: textColor,
+                      labelColor: labelColor,
+                      fillColor: fieldFill,
+                      iconColor: iconColor,
+                      borderColor: accentColor,
+                    ),
+                    const SizedBox(height: 20),
+                    _buildTextField(
+                      controller: _phoneController,
+                      label: 'Phone Number',
+                      icon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                      textColor: textColor,
+                      labelColor: labelColor,
+                      fillColor: fieldFill,
+                      iconColor: iconColor,
+                      borderColor: accentColor,
+                    ),
+                    const SizedBox(height: 20),
+                    _buildTextField(
+                      controller: _aadharController,
+                      label: isAuthorityMode
+                          ? 'Badge / Authority ID'
+                          : 'Aadhaar Number',
+                      icon: isAuthorityMode
+                          ? Icons.badge_outlined
+                          : Icons.credit_card,
+                      textColor: textColor,
+                      labelColor: labelColor,
+                      fillColor: fieldFill,
+                      iconColor: iconColor,
+                      borderColor: accentColor,
+                    ),
+                    const SizedBox(height: 20),
+                    _buildTextField(
+                      controller: _emergencyController,
+                      label: isAuthorityMode
+                          ? 'Official Designation'
+                          : 'Emergency Contact',
+                      icon: isAuthorityMode
+                          ? Icons.work_outline
+                          : Icons.contact_emergency_outlined,
+                      keyboardType: isAuthorityMode
+                          ? TextInputType.text
+                          : TextInputType.phone,
+                      textColor: textColor,
+                      labelColor: labelColor,
+                      fillColor: fieldFill,
+                      iconColor: iconColor,
+                      borderColor: accentColor,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 30),
+              SizedBox(
+                width: double.infinity,
+                height: 55,
+                child: ElevatedButton(
+                  onPressed: _isSaving ? null : _updateProfile,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: accentColor,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    elevation: 5,
+                  ),
+                  child: _isSaving
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          'SAVE CHANGES',
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color:
+                                  isAuthorityMode ? Colors.black : Colors.white,
+                              letterSpacing: 1.2),
+                        ),
+                ),
+              ),
             ],
           ),
         ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20.0),
-              child: Card(
-                elevation: 8,
-                shadowColor: Colors.black26,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24)),
-                color: Colors.white.withOpacity(0.95),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _isAuthority
-                              ? 'Authority Profile'
-                              : 'Personal Information',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.deepPurple.shade800,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Update your details below',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Profile Picture Section
-                        Stack(
-                          children: [
-                            GestureDetector(
-                              onTap: _isSaving ? null : _showImagePickerOptions,
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: Colors.deepPurple.shade200,
-                                      width: 4),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black12,
-                                      blurRadius: 10,
-                                      spreadRadius: 2,
-                                    )
-                                  ],
-                                ),
-                                child: CircleAvatar(
-                                  radius: 60,
-                                  backgroundColor: Colors.white,
-                                  backgroundImage: _profileImage != null
-                                      ? FileImage(File(_profileImage!.path))
-                                      : (_profileImageUrl != null &&
-                                              _profileImageUrl!.isNotEmpty
-                                          ? NetworkImage(_profileImageUrl!)
-                                          : null) as ImageProvider?,
-                                  child: (_profileImage == null &&
-                                          (_profileImageUrl == null ||
-                                              _profileImageUrl!.isEmpty))
-                                      ? Text(
-                                          _nameController.text.isNotEmpty
-                                              ? _nameController.text[0]
-                                                  .toUpperCase()
-                                              : 'T',
-                                          style: TextStyle(
-                                            fontSize: 48,
-                                            color: Colors.deepPurple.shade700,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        )
-                                      : null,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: GestureDetector(
-                                onTap:
-                                    _isSaving ? null : _showImagePickerOptions,
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.deepPurple,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                        color: Colors.white, width: 3),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black26,
-                                        blurRadius: 6,
-                                      )
-                                    ],
-                                  ),
-                                  child: const Icon(
-                                    Icons.camera_alt,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 32),
-
-                        // Name Field
-                        TextFormField(
-                          controller: _nameController,
-                          style: const TextStyle(color: Colors.black87),
-                          decoration: _buildInputDecoration(
-                              'Full Name', Icons.person_outline),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your full name';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Email Field
-                        TextFormField(
-                          controller: _emailController,
-                          style: const TextStyle(color: Colors.black87),
-                          decoration: _buildInputDecoration(
-                              'Email', Icons.email_outlined),
-                          keyboardType: TextInputType.emailAddress,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your email';
-                            }
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                .hasMatch(value)) {
-                              return 'Please enter a valid email';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Phone Number Field
-                        TextFormField(
-                          controller: _phoneController,
-                          style: const TextStyle(color: Colors.black87),
-                          decoration: _buildInputDecoration(
-                              'Phone Number', Icons.phone_outlined),
-                          keyboardType: TextInputType.phone,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter your phone number';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Emergency Contact / Designation Field
-                        TextFormField(
-                          controller: _emergencyController,
-                          style: const TextStyle(color: Colors.black87),
-                          decoration: _buildInputDecoration(
-                            _isAuthority
-                                ? 'Designation / Division'
-                                : 'Emergency Contact',
-                            _isAuthority
-                                ? Icons.work_outline
-                                : Icons.contact_phone_outlined,
-                          ),
-                          keyboardType: _isAuthority
-                              ? TextInputType.text
-                              : TextInputType.phone,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return _isAuthority
-                                  ? 'Please enter designation'
-                                  : 'Please enter emergency contact';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Aadhaar / Authority ID Field
-                        TextFormField(
-                          controller: _aadharController,
-                          style: const TextStyle(color: Colors.black87),
-                          decoration: _buildInputDecoration(
-                            _isAuthority
-                                ? 'Authority Badge ID'
-                                : 'Aadhaar / Passport Number',
-                            Icons.badge_outlined,
-                          ),
-                          keyboardType: TextInputType.text,
-                        ),
-                        const SizedBox(height: 40),
-
-                        // Save Button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: ElevatedButton(
-                            onPressed: _isSaving ? null : _saveProfile,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.deepPurple,
-                              foregroundColor: Colors.white,
-                              elevation: 5,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              shadowColor: Colors.deepPurple.shade200,
-                            ),
-                            child: _isSaving
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
-                                    ),
-                                  )
-                                : const Text(
-                                    'SAVE CHANGES',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.2,
-                                    ),
-                                  ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Cancel Button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: TextButton.styleFrom(
-                              foregroundColor: Colors.grey.shade600,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            child: const Text(
-                              'Cancel',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool readOnly = false,
+    TextInputType keyboardType = TextInputType.text,
+    required Color textColor,
+    required Color labelColor,
+    required Color fillColor,
+    required Color iconColor,
+    required Color borderColor,
+  }) {
+    return TextFormField(
+      controller: controller,
+      readOnly: readOnly,
+      keyboardType: keyboardType,
+      style: TextStyle(color: textColor, fontWeight: FontWeight.w500),
+      validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: labelColor),
+        prefixIcon: Icon(icon, color: iconColor),
+        filled: true,
+        fillColor: fillColor,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: borderColor, width: 1.5),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+      ),
+    );
+  }
+
+  void _showImagePicker(BuildContext context, bool isDarkMode) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: isDarkMode ? const Color(0xFF1E293B) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return SafeArea(
+          child: Wrap(
+            children: <Widget>[
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: Text('Photo Library',
+                    style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black)),
+                onTap: () {
+                  _pickProfileImage(ImageSource.gallery);
+                  Navigator.of(context).pop();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_camera),
+                title: Text('Camera',
+                    style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black)),
+                onTap: () {
+                  _pickProfileImage(ImageSource.camera);
+                  Navigator.of(context).pop();
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

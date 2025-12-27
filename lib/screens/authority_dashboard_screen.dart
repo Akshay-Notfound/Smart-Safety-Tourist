@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:io';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:vibration/vibration.dart';
 import 'qr_scanner_screen.dart';
 import 'tourist_detail_screen.dart';
-import 'aadhar_detail_screen.dart';
+
 import 'authority_settings_screen.dart';
 import 'chat_screen.dart';
 import 'edit_profile_screen.dart';
