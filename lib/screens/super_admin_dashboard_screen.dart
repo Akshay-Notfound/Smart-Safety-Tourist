@@ -5,24 +5,59 @@ import 'package:flutter/material.dart';
 class SuperAdminDashboardScreen extends StatelessWidget {
   const SuperAdminDashboardScreen({super.key});
 
-  // Function to delete user data
+  final Color _executiveBg = const Color(0xFF020617); // Deep Navy
+  final Color _executiveCard = const Color(0xFF0F172A); // Slate 900
+  final Color _goldAccent = const Color(0xFFF59E0B); // Gold
+  final Color _textPlatinum = const Color(0xFFE2E8F0); // Platinum
+
+  // Function to delete user data with Executive Protocol
   Future<void> _deleteUser(
       BuildContext context, String docId, String name) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete User Data?'),
+        backgroundColor: _executiveCard,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+            side: BorderSide(color: Colors.red.withOpacity(0.5))),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'PURGE RECORD?',
+                style: TextStyle(
+                    color: _textPlatinum,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    letterSpacing: 1.2),
+              ),
+            ),
+          ],
+        ),
         content: Text(
-            'Are you sure you want to permanently delete data for "$name"?\n\nThis will remove their profile and access.'),
+          'Target: "$name"\nAction: PERMANENT DELETION\n\nThis action is irreversible. All associated data will be expunged from the mainframe.',
+          style: TextStyle(color: _textPlatinum.withOpacity(0.7), height: 1.5),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text('ABORT',
+                style: TextStyle(
+                    color: _textPlatinum.withOpacity(0.5), letterSpacing: 1)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Delete'),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade900,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(4))),
+            child: const Text('EXECUTE PURGE',
+                style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2)),
           ),
         ],
       ),
@@ -36,17 +71,58 @@ class SuperAdminDashboardScreen extends StatelessWidget {
             .delete();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('$name deleted successfully.')),
+            SnackBar(
+              content: Text('RECORD EXPUNGED: $name',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, letterSpacing: 1)),
+              backgroundColor: _executiveCard,
+              shape: Border(top: BorderSide(color: _goldAccent, width: 2)),
+            ),
           );
         }
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error deleting user: $e')),
+            SnackBar(content: Text('SYSTEM ERROR: $e')),
           );
         }
       }
     }
+  }
+
+  Widget _buildStatCard(String title, String value, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _executiveCard,
+          borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(icon, color: _goldAccent, size: 20),
+                Text(value,
+                    style: TextStyle(
+                        color: _textPlatinum,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(title.toUpperCase(),
+                style: TextStyle(
+                    color: _textPlatinum.withOpacity(0.5),
+                    fontSize: 10,
+                    letterSpacing: 1.5)),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildUserList(String role) {
@@ -54,83 +130,85 @@ class SuperAdminDashboardScreen extends StatelessWidget {
       stream: FirebaseFirestore.instance.collection('users').snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return Center(child: CircularProgressIndicator(color: _goldAccent));
         }
 
         if (snapshot.hasError) {
           return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text(
-                'Error loading users:\n${snapshot.error}',
-                style: const TextStyle(color: Colors.red),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          );
+              child: Text('DATA CORRUPTION DETECTED',
+                  style: TextStyle(color: Colors.red)));
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('No users found in database.'));
+          return Center(
+              child: Text('DATABASE EMPTY',
+                  style: TextStyle(color: _textPlatinum.withOpacity(0.3))));
         }
 
-        // Filter locally to include "old data" (missing role) as Tourists
         final users = snapshot.data!.docs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
           final userRole = data['role'];
-
           if (role == 'tourist') {
-            // Show if role is 'tourist' OR role is missing/null (Legacy/Old Data)
             return userRole == 'tourist' || userRole == null;
           } else {
-            // Show only if role is explicitly 'authority'
             return userRole == 'authority';
           }
         }).toList();
 
         if (users.isEmpty) {
-          return Center(child: Text('No $role found.'));
+          return Center(
+              child: Text('NO RECORDS FOUND',
+                  style: TextStyle(color: _textPlatinum.withOpacity(0.3))));
         }
 
-        return ListView.builder(
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
           itemCount: users.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
           itemBuilder: (context, index) {
             final doc = users[index];
             final data = doc.data() as Map<String, dynamic>;
-            final name = data['fullName'] ?? 'Unknown Name';
-            final email = data['email'] ?? 'No Email';
+            final name = data['fullName'] ?? 'UNKNOWN ENTITY';
+            final email = data['email'] ?? 'NO CONTACT';
             final detail = role == 'authority'
-                ? 'Dept: ${data['department'] ?? 'N/A'}'
-                : 'Phone: ${data['phoneNumber'] ?? 'N/A'}';
+                ? 'DEPT: ${data['department']?.toString().toUpperCase() ?? 'N/A'}'
+                : 'PHONE: ${data['phoneNumber'] ?? 'N/A'}';
 
-            return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            return Container(
+              decoration: BoxDecoration(
+                color: _executiveCard,
+                borderRadius: BorderRadius.circular(4),
+                border: Border(
+                    left: BorderSide(
+                        color:
+                            role == 'authority' ? _goldAccent : Colors.blueGrey,
+                        width: 4)),
+              ),
               child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor:
-                      role == 'authority' ? Colors.deepPurple : Colors.blue,
-                  child: Icon(
-                    role == 'authority' ? Icons.security : Icons.person,
-                    color: Colors.white,
-                  ),
-                ),
-                title: Text(name,
-                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                title: Text(name.toUpperCase(),
+                    style: TextStyle(
+                        color: _textPlatinum,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1)),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(email),
-                    Text(detail, style: TextStyle(color: Colors.grey[600])),
-                    if (data['role'] == null) // Indicate legacy data
-                      Text('(Legacy User)',
-                          style: TextStyle(
-                              color: Colors.orange,
-                              fontStyle: FontStyle.italic,
-                              fontSize: 12)),
+                    const SizedBox(height: 4),
+                    Text(email,
+                        style:
+                            TextStyle(color: _textPlatinum.withOpacity(0.6))),
+                    Text(detail,
+                        style: TextStyle(
+                            color: _goldAccent.withOpacity(0.8),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600)),
                   ],
                 ),
                 trailing: IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
+                  icon: Icon(Icons.delete_forever_rounded,
+                      color: Colors.red.withOpacity(0.7)),
                   onPressed: () => _deleteUser(context, doc.id, name),
                 ),
               ),
@@ -146,25 +224,96 @@ class SuperAdminDashboardScreen extends StatelessWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
+        backgroundColor: _executiveBg,
         appBar: AppBar(
-            title: const Text('Super Admin Dashboard'),
-            backgroundColor: Colors.redAccent,
-            bottom: TabBar(
-              tabs: [
-                Tab(text: 'Tourists'),
-                Tab(text: 'Authorities'),
-              ],
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.logout),
-                onPressed: () => Navigator.pop(context),
-              )
-            ]),
-        body: TabBarView(
+          backgroundColor: _executiveBg,
+          elevation: 0,
+          title: Row(
+            children: [
+              Icon(Icons.admin_panel_settings_outlined, color: _goldAccent),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('EXECUTIVE CONTROL',
+                      style: TextStyle(
+                          color: _textPlatinum,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                          letterSpacing: 1.5)),
+                  Text('SUPER ADMIN ACCESS LEVEL 1',
+                      style: TextStyle(
+                          color: _goldAccent, fontSize: 8, letterSpacing: 2)),
+                ],
+              ),
+            ],
+          ),
+          bottom: TabBar(
+            indicatorColor: _goldAccent,
+            labelColor: _goldAccent,
+            unselectedLabelColor: _textPlatinum.withOpacity(0.5),
+            dividerColor: Colors.white10,
+            tabs: const [
+              Tab(
+                  child: Text('CIVILIAN DATABASE',
+                      style: TextStyle(letterSpacing: 1.2))),
+              Tab(
+                  child: Text('AUTHORITY PERSONNEL',
+                      style: TextStyle(letterSpacing: 1.2))),
+            ],
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.power_settings_new, color: Colors.red.shade400),
+              onPressed: () => Navigator.pop(context),
+            )
+          ],
+        ),
+        body: Column(
           children: [
-            _buildUserList('tourist'),
-            _buildUserList('authority'),
+            // Live Stats Panel (Mockup from Stream)
+            StreamBuilder<QuerySnapshot>(
+              stream:
+                  FirebaseFirestore.instance.collection('users').snapshots(),
+              builder: (context, snapshot) {
+                int tourists = 0;
+                int authorities = 0;
+
+                if (snapshot.hasData) {
+                  final docs = snapshot.data!.docs;
+                  tourists = docs.where((d) {
+                    final r = (d.data() as Map)['role'];
+                    return r == 'tourist' || r == null;
+                  }).length;
+                  authorities = docs
+                      .where((d) => (d.data() as Map)['role'] == 'authority')
+                      .length;
+                }
+
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  color: _executiveBg,
+                  child: Row(
+                    children: [
+                      _buildStatCard(
+                          'CIVILIANS', '$tourists', Icons.people_outline),
+                      const SizedBox(width: 12),
+                      _buildStatCard(
+                          'OFFICERS', '$authorities', Icons.security),
+                    ],
+                  ),
+                );
+              },
+            ),
+            Divider(color: Colors.white10, height: 1),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _buildUserList('tourist'),
+                  _buildUserList('authority'),
+                ],
+              ),
+            ),
           ],
         ),
       ),

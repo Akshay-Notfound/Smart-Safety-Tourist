@@ -14,27 +14,36 @@ class _SuperAdminLoginScreenState extends State<SuperAdminLoginScreen> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
+  final Color _executiveBg = const Color(0xFF020617); // Deep Navy
+  final Color _executiveCard = const Color(0xFF0F172A); // Slate 900
+  final Color _goldAccent = const Color(0xFFF59E0B); // Gold
+  final Color _textPlatinum = const Color(0xFFE2E8F0); // Platinum
+
+  bool _isLoading = false;
+
   void _login() async {
     if (_formKey.currentState!.validate()) {
-      // Hardcoded credentials for Super Admin Check (Client Side Security)
+      setState(() => _isLoading = true);
+
+      // Hardcoded credentials for Super Admin Check (Client Side Security level 1)
       if (_emailController.text.trim() == 'admin@gmail.com' &&
           _passwordController.text.trim() == 'admin123') {
         try {
-          // Attempt to sign in to Firebase to get a valid token for Firestore
+          // Attempt to sign in to Firebase
           try {
             await FirebaseAuth.instance.signInWithEmailAndPassword(
               email: 'admin@gmail.com',
               password: 'admin123',
             );
           } on FirebaseAuthException catch (e) {
-            // If user not found, create it (First time admin login)
+            // First time admin creation
             if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
               await FirebaseAuth.instance.createUserWithEmailAndPassword(
                 email: 'admin@gmail.com',
                 password: 'admin123',
               );
             } else {
-              rethrow; // Handle other errors normally
+              rethrow;
             }
           }
 
@@ -47,78 +56,154 @@ class _SuperAdminLoginScreenState extends State<SuperAdminLoginScreen> {
           }
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Auth Error: $e'),
-                backgroundColor: Colors.red,
-              ),
-            );
+            _showError('AUTHENTICATION FAILED: $e');
           }
+        } finally {
+          if (mounted) setState(() => _isLoading = false);
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Invalid Super Admin Credentials'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        _showError('INVALID EXECUTIVE CREDENTIALS');
+        setState(() => _isLoading = false);
       }
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.red.shade900,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Super Admin Login'),
-        backgroundColor: Colors.redAccent,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Form(
-          key: _formKey,
+      backgroundColor: _executiveBg,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.admin_panel_settings,
-                  size: 80, color: Colors.redAccent),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _emailController,
-                decoration: const InputDecoration(
-                  labelText: 'Admin Email',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.email),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _goldAccent, width: 2),
+                  // color: _executiveCard,
+                  boxShadow: [
+                    BoxShadow(
+                        color: _goldAccent.withOpacity(0.2),
+                        blurRadius: 20,
+                        spreadRadius: 2)
+                  ],
                 ),
-                validator: (value) =>
-                    value!.isEmpty ? 'Please enter email' : null,
+                child: Icon(Icons.shield, size: 60, color: _goldAccent),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _passwordController,
-                decoration: const InputDecoration(
-                  labelText: 'Password',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.lock),
-                ),
-                obscureText: true,
-                validator: (value) =>
-                    value!.isEmpty ? 'Please enter password' : null,
+              const SizedBox(height: 24),
+              Text(
+                'EXECUTIVE LOGIN',
+                style: TextStyle(
+                    color: _textPlatinum,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 3),
               ),
-              const SizedBox(height: 32),
-              ElevatedButton(
-                onPressed: _login,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+              const SizedBox(height: 8),
+              Text(
+                'SUPER ADMIN PROTOCOL',
+                style: TextStyle(
+                    color: _goldAccent, fontSize: 10, letterSpacing: 2),
+              ),
+              const SizedBox(height: 48),
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: _executiveCard,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white10),
                 ),
-                child: const Text('Login', style: TextStyle(fontSize: 18)),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      _buildTextField(
+                          controller: _emailController,
+                          label: 'ADMIN ID',
+                          icon: Icons.person_outline),
+                      const SizedBox(height: 20),
+                      _buildTextField(
+                          controller: _passwordController,
+                          label: 'SECURE KEY',
+                          icon: Icons.lock_outline,
+                          isPassword: true),
+                      const SizedBox(height: 32),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _login,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _goldAccent,
+                            foregroundColor: Colors.black,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: Colors.black),
+                                )
+                              : const Text(
+                                  'INITIATE SESSION',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.5),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool isPassword = false,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: isPassword,
+      style: TextStyle(color: _textPlatinum),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: TextStyle(color: _textPlatinum.withOpacity(0.5)),
+        prefixIcon: Icon(icon, color: _goldAccent.withOpacity(0.8)),
+        enabledBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: Colors.white10),
+            borderRadius: BorderRadius.circular(4)),
+        focusedBorder: OutlineInputBorder(
+            borderSide: BorderSide(color: _goldAccent),
+            borderRadius: BorderRadius.circular(4)),
+        filled: true,
+        fillColor: const Color(0xFF020617).withOpacity(0.5),
+      ),
+      validator: (value) => value!.isEmpty ? 'FIELD REQUIRED' : null,
     );
   }
 }
