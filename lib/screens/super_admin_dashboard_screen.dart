@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:smart_tourist_app/services/logout_service.dart';
 
 class SuperAdminDashboardScreen extends StatelessWidget {
   const SuperAdminDashboardScreen({super.key});
@@ -290,7 +290,7 @@ class SuperAdminDashboardScreen extends StatelessWidget {
           actions: [
             IconButton(
               icon: Icon(Icons.power_settings_new, color: Colors.red.shade400),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => LogoutService.showLogoutDialog(context),
             )
           ],
         ),
