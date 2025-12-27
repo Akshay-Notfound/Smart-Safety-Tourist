@@ -5,7 +5,7 @@ import 'package:smart_tourist_app/repository/weather_repository.dart';
 
 class WeatherService extends ChangeNotifier {
   final WeatherRepository _weatherRepository = WeatherRepository();
-  
+
   WeatherDataModel? _weatherModel;
   Hours? _currentHour;
   int _currentIndex = 0;
@@ -24,21 +24,43 @@ class WeatherService extends ChangeNotifier {
       _isLoading = true;
       _errorMessage = '';
       notifyListeners();
-      
-      final response = await _weatherRepository.fetchWeatherData(latitude, longitude);
+
+      final response =
+          await _weatherRepository.fetchWeatherData(latitude, longitude);
       _weatherModel = response;
-      
+
       // Set current hour data
-      if (_weatherModel != null && 
-          _weatherModel!.days != null && 
+      if (_weatherModel != null &&
+          _weatherModel!.days != null &&
           _weatherModel!.days!.isNotEmpty &&
           _weatherModel!.days![0].hours != null) {
-        
         // Find current hour or use first hour
+        // Find current hour
+        final currentHour = DateTime.now().hour;
         for (int i = 0; i < _weatherModel!.days![0].hours!.length; i++) {
-          _currentHour = _weatherModel!.days![0].hours![i];
-          _currentIndex = i;
-          break;
+          // The API likely returns hour as "HH:00:00" or similar, or we can assume index matches hour if 24h format?
+          // Looking at standard weather APIs, 'datetime' is often "HH:mm:ss".
+          // Let's parse the datetime to be safe, or check if specific hour field exists.
+          // Assuming 'datetime' contains the hour or index correlates.
+          // Actually, let's parse the string from the model.
+          final hourData = _weatherModel!.days![0].hours![i];
+          if (hourData.datetime != null) {
+            final hourString = hourData.datetime!
+                .split(':')[0]; // Extract "14" from "14:00:00"
+            final hourInt = int.tryParse(hourString);
+
+            if (hourInt == currentHour) {
+              _currentHour = hourData;
+              _currentIndex = i;
+              break;
+            }
+          }
+        }
+
+        // Fallback: If no match (shouldn't happen for 24h data), keep default (first one or null) but ensure we set something if possible.
+        if (_currentHour == null && _weatherModel!.days![0].hours!.isNotEmpty) {
+          _currentHour = _weatherModel!.days![0].hours![0];
+          _currentIndex = 0;
         }
       }
     } catch (e) {
@@ -55,21 +77,36 @@ class WeatherService extends ChangeNotifier {
       _isLoading = true;
       _errorMessage = '';
       notifyListeners();
-      
-      final response = await _weatherRepository.fetchWeatherDataByCity(cityName);
+
+      final response =
+          await _weatherRepository.fetchWeatherDataByCity(cityName);
       _weatherModel = response;
-      
+
       // Set current hour data
-      if (_weatherModel != null && 
-          _weatherModel!.days != null && 
+      if (_weatherModel != null &&
+          _weatherModel!.days != null &&
           _weatherModel!.days!.isNotEmpty &&
           _weatherModel!.days![0].hours != null) {
-        
         // Find current hour or use first hour
+        // Find current hour
+        final currentHour = DateTime.now().hour;
         for (int i = 0; i < _weatherModel!.days![0].hours!.length; i++) {
-          _currentHour = _weatherModel!.days![0].hours![i];
-          _currentIndex = i;
-          break;
+          final hourData = _weatherModel!.days![0].hours![i];
+          if (hourData.datetime != null) {
+            final hourString = hourData.datetime!.split(':')[0];
+            final hourInt = int.tryParse(hourString);
+
+            if (hourInt == currentHour) {
+              _currentHour = hourData;
+              _currentIndex = i;
+              break;
+            }
+          }
+        }
+        // Fallback
+        if (_currentHour == null && _weatherModel!.days![0].hours!.isNotEmpty) {
+          _currentHour = _weatherModel!.days![0].hours![0];
+          _currentIndex = 0;
         }
       }
     } catch (e) {
@@ -87,7 +124,8 @@ class WeatherService extends ChangeNotifier {
         _weatherModel!.days!.isNotEmpty &&
         _weatherModel!.days![0].hours != null &&
         index < _weatherModel!.days![0].hours!.length) {
-      final datetime = _weatherModel!.days![0].hours![index].datetime.toString();
+      final datetime =
+          _weatherModel!.days![0].hours![index].datetime.toString();
       return _formatTime(datetime);
     }
     return '--:--';
@@ -179,7 +217,6 @@ class WeatherService extends ChangeNotifier {
         _weatherModel!.days!.isNotEmpty &&
         _weatherModel!.days![0].hours != null &&
         index < _weatherModel!.days![0].hours!.length) {
-      
       _currentIndex = index;
       _currentHour = _weatherModel!.days![0].hours![index];
       notifyListeners();
@@ -189,9 +226,9 @@ class WeatherService extends ChangeNotifier {
   // Calculate safety score based on weather conditions
   int calculateSafetyScore() {
     if (_currentHour == null) return 50;
-    
+
     int score = 100;
-    
+
     // Temperature factors
     if (_currentHour!.temp != null) {
       final temp = _currentHour!.temp.toDouble();
@@ -201,7 +238,7 @@ class WeatherService extends ChangeNotifier {
         score -= 15; // Hot or cold
       }
     }
-    
+
     // Wind speed factor
     if (_currentHour!.windspeed != null) {
       final windSpeed = _currentHour!.windspeed.toDouble();
@@ -211,12 +248,12 @@ class WeatherService extends ChangeNotifier {
         score -= 20; // Strong winds
       }
     }
-    
+
     // Precipitation factor
     if (_currentHour!.precip != null && _currentHour!.precip > 0) {
       score -= 15; // Rain/snow
     }
-    
+
     // Visibility factor
     if (_currentHour!.visibility != null) {
       final visibility = _currentHour!.visibility.toDouble();
@@ -226,7 +263,7 @@ class WeatherService extends ChangeNotifier {
         score -= 15; // Reduced visibility
       }
     }
-    
+
     // Cloud cover factor
     if (_currentHour!.cloudcover != null) {
       final cloudCover = _currentHour!.cloudcover.toDouble();
@@ -234,10 +271,10 @@ class WeatherService extends ChangeNotifier {
         score -= 10; // Overcast
       }
     }
-    
+
     return score.clamp(0, 100);
   }
-  
+
   String getSafetyStatusText() {
     final score = calculateSafetyScore();
     if (score > 75) return "Very Safe";
@@ -245,7 +282,7 @@ class WeatherService extends ChangeNotifier {
     if (score > 25) return "Caution Advised";
     return "Unsafe Conditions";
   }
-  
+
   String getSafetyStatusDescription() {
     final score = calculateSafetyScore();
     if (score > 75) return "Excellent weather conditions for travel";

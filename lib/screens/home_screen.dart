@@ -637,27 +637,27 @@ class _HomeScreenState extends State<HomeScreen>
     return Drawer(
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.deepPurple.shade900,
+                Colors.deepPurpleAccent.shade400
+              ]),
         ),
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
             UserAccountsDrawerHeader(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.deepPurple.shade800,
-                    Colors.deepPurpleAccent.shade200
-                  ],
-                ),
+              decoration: const BoxDecoration(
+                color: Colors.transparent,
               ),
               accountName: Text(
                 userData?['fullName'] ?? 'Tourist',
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
+                  color: Colors.white,
                 ),
               ),
               accountEmail: Text(
@@ -738,16 +738,20 @@ class _HomeScreenState extends State<HomeScreen>
               _refreshSafetyStatus();
             }),
             ListTile(
-              leading: Icon(Icons.track_changes_outlined,
-                  color: Colors.deepPurple.shade700),
-              title: const Text('Live Tracking'),
+              leading:
+                  const Icon(Icons.track_changes_outlined, color: Colors.white),
+              title: const Text('Live Tracking',
+                  style: TextStyle(
+                      fontWeight: FontWeight.w500, color: Colors.white)),
               trailing: Switch(
                 value: _isSharingLocation,
                 onChanged: (value) {
                   Navigator.pop(context);
                   _toggleLocationSharing(value);
                 },
-                activeColor: Colors.deepPurple,
+                activeColor: Colors.greenAccent,
+                inactiveThumbColor: Colors.white,
+                inactiveTrackColor: Colors.white24,
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -775,8 +779,10 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildDrawerItem(IconData icon, String title, VoidCallback onTap) {
     return ListTile(
-      leading: Icon(icon, color: Colors.deepPurple.shade700),
-      title: Text(title, style: TextStyle(fontWeight: FontWeight.w500)),
+      leading: Icon(icon, color: Colors.white),
+      title: Text(title,
+          style: const TextStyle(
+              fontWeight: FontWeight.w500, color: Colors.white)),
       onTap: () {
         Navigator.pop(context);
         onTap();
