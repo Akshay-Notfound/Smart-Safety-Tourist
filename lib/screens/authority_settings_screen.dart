@@ -7,6 +7,7 @@ import 'package:smart_tourist_app/screens/terms_conditions_screen.dart';
 import 'package:smart_tourist_app/screens/cookies_policy_screen.dart';
 import 'package:smart_tourist_app/screens/user_feedback_screen.dart';
 import 'package:smart_tourist_app/services/logout_service.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:smart_tourist_app/screens/contact_screen.dart';
 
 class AuthoritySettingsScreen extends StatefulWidget {
@@ -170,6 +171,17 @@ class _AuthoritySettingsScreenState extends State<AuthoritySettingsScreen> {
                         context,
                         MaterialPageRoute(
                             builder: (_) => const UserFeedbackScreen())),
+                  ),
+                  _buildDivider(),
+                  SettingsTile(
+                    icon: Icons.share_rounded,
+                    title: 'Share System Access',
+                    textColor: _textLight,
+                    iconColor: _textDim,
+                    onTap: () {
+                      Share.share(
+                          'OFFICIAL: Secure Tourist Safety System Access Link\n\nDownload: https://play.google.com/store/apps/details?id=com.smart.tourist.security\n\nAuthorized Personnel Only.');
+                    },
                   ),
                 ],
               ),
