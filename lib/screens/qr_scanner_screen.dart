@@ -14,6 +14,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
     with SingleTickerProviderStateMixin {
   bool _isScanCompleted = false;
   late AnimationController _scannerController;
+  final MobileScannerController _cameraController = MobileScannerController();
 
   @override
   void initState() {
@@ -27,6 +28,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
   @override
   void dispose() {
     _scannerController.dispose();
+    _cameraController.dispose();
     super.dispose();
   }
 
@@ -95,6 +97,7 @@ class _QRScannerScreenState extends State<QRScannerScreen>
         alignment: Alignment.center,
         children: [
           MobileScanner(
+            controller: _cameraController,
             onDetect: (capture) {
               if (!_isScanCompleted) {
                 final String code = capture.barcodes.first.rawValue ?? "---";
@@ -139,6 +142,31 @@ class _QRScannerScreenState extends State<QRScannerScreen>
             child: IconButton(
               icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
               onPressed: () => Navigator.pop(context),
+            ),
+          ),
+
+          // Flash Toggle
+          Positioned(
+            top: 50,
+            right: 20,
+            child: ValueListenableBuilder(
+              valueListenable: _cameraController,
+              builder: (context, state, child) {
+                final isOn = state.torchState == TorchState.on;
+                return Container(
+                  decoration: BoxDecoration(
+                    color: isOn
+                        ? const Color(0xFFF59E0B).withOpacity(0.2)
+                        : Colors.transparent,
+                    shape: BoxShape.circle,
+                  ),
+                  child: IconButton(
+                    icon: Icon(isOn ? Icons.flash_on : Icons.flash_off,
+                        color: isOn ? const Color(0xFFF59E0B) : Colors.white70),
+                    onPressed: () => _cameraController.toggleTorch(),
+                  ),
+                );
+              },
             ),
           ),
 
