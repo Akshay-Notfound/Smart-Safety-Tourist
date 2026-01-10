@@ -88,6 +88,32 @@ flutter run
 
 ---
 
+---
+
+## 🔄 Data Flow
+
+```mermaid
+graph TD
+    User([User<br/>Tourist / Authority / Admin])
+    App[Flutter Mobile App]
+    Auth[Firebase Authentication]
+    Firestore[Cloud Firestore DB]
+    Storage[Firebase Storage]
+    Maps[Google Maps API]
+    Weather[Weather API]
+    Gemini[Gemini AI API]
+
+    User <-->|Interacts| App
+    App <-->|Sign In/Up| Auth
+    App <-->|Read/Write Data| Firestore
+    App <-->|Upload/View Docs| Storage
+    App <-->|Get Location/Route| Maps
+    App <-->|Fetch Weather| Weather
+    App <-->|Smart Assistant| Gemini
+```
+
+---
+
 ## 📂 Project Structure
 
 ```text
