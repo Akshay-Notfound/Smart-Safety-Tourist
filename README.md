@@ -108,39 +108,39 @@ graph TD
         Store[(Storage Bucket)]
     end
 
-    subgraph "External Services"
+    subgraph ExternalServices [External Services]
         GMaps[Google Maps API]
         OpenWeather[Weather API]
         Gemini[Gemini AI]
     end
 
     %% Role Interactions
-    Tourist -->|Login/Register| App
-    Authority -->|Login| App
-    Admin -->|Login (Secret)| App
+    Tourist -->|"Login/Register"| App
+    Authority -->|"Login"| App
+    Admin -->|"Login (Secret)"| App
 
     %% Detailed Data Flow
-    App -->|Verify Credentials| Auth
-    App -->|Store/Retrieve User Profile| DB
-    App -->|Upload Documents/Photos| Store
+    App -->|"Verify Credentials"| Auth
+    App -->|"Store/Retrieve User Profile"| DB
+    App -->|"Upload Documents/Photos"| Store
     
     %% Specific Features
-    Tourist -->|Share Live Location| App
-    App -->|Update Coordinates| DB
+    Tourist -->|"Share Live Location"| App
+    App -->|"Update Coordinates"| DB
     
-    Tourist -->|SOS Alert| App
-    App -->|Create Incident| DB
+    Tourist -->|"SOS Alert"| App
+    App -->|"Create Incident"| DB
     
-    Authority -->|Scan QR / Verify Docs| App
-    App -->|Fetch Tourist Details| DB
+    Authority -->|"Scan QR / Verify Docs"| App
+    App -->|"Fetch Tourist Details"| DB
     
-    Admin -->|Manage Users| App
-    App -->|Delete/Modify Accounts| DB
+    Admin -->|"Manage Users"| App
+    App -->|"Delete/Modify Accounts"| DB
 
     %% External API Calls
-    App -->|Get Current Location| GMaps
-    App -->|Fetch Weather Data| OpenWeather
-    App -->|Chat with Assistant| Gemini
+    App -->|"Get Current Location"| GMaps
+    App -->|"Fetch Weather Data"| OpenWeather
+    App -->|"Chat with Assistant"| Gemini
 ```
 
 ---
