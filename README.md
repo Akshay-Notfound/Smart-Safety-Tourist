@@ -94,22 +94,53 @@ flutter run
 
 ```mermaid
 graph TD
-    User([User<br/>Tourist / Authority / Admin])
-    App[Flutter Mobile App]
-    Auth[Firebase Authentication]
-    Firestore[Cloud Firestore DB]
-    Storage[Firebase Storage]
-    Maps[Google Maps API]
-    Weather[Weather API]
-    Gemini[Gemini AI API]
+    subgraph Roles
+        Tourist
+        Authority
+        Admin[Super Admin]
+    end
 
-    User <-->|Interacts| App
-    App <-->|Sign In/Up| Auth
-    App <-->|Read/Write Data| Firestore
-    App <-->|Upload/View Docs| Storage
-    App <-->|Get Location/Route| Maps
-    App <-->|Fetch Weather| Weather
-    App <-->|Smart Assistant| Gemini
+    App[Smart Tourist App]
+
+    subgraph Firebase
+        Auth[Authentication]
+        DB[(Firestore Database)]
+        Store[(Storage Bucket)]
+    end
+
+    subgraph "External Services"
+        GMaps[Google Maps API]
+        OpenWeather[Weather API]
+        Gemini[Gemini AI]
+    end
+
+    %% Role Interactions
+    Tourist -->|Login/Register| App
+    Authority -->|Login| App
+    Admin -->|Login (Secret)| App
+
+    %% Detailed Data Flow
+    App -->|Verify Credentials| Auth
+    App -->|Store/Retrieve User Profile| DB
+    App -->|Upload Documents/Photos| Store
+    
+    %% Specific Features
+    Tourist -->|Share Live Location| App
+    App -->|Update Coordinates| DB
+    
+    Tourist -->|SOS Alert| App
+    App -->|Create Incident| DB
+    
+    Authority -->|Scan QR / Verify Docs| App
+    App -->|Fetch Tourist Details| DB
+    
+    Admin -->|Manage Users| App
+    App -->|Delete/Modify Accounts| DB
+
+    %% External API Calls
+    App -->|Get Current Location| GMaps
+    App -->|Fetch Weather Data| OpenWeather
+    App -->|Chat with Assistant| Gemini
 ```
 
 ---
