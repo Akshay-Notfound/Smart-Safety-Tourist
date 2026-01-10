@@ -39,7 +39,7 @@ A comprehensive Flutter-based mobile application designed to enhance tourist saf
   - **Storage**: Securely storing document uploads and profile pictures.
   - **App Check**: Security enforcement to ensure requests come from the genuine app.
 - **Maps**: `google_maps_flutter` for location tracking.
-- **AI Integration**: Gemini API (for Smart Assistant).
+- **AI Integration**: Custom Knowledge-Based AI (for Smart Assistant).
 
 ---
 
@@ -111,7 +111,7 @@ graph TD
     subgraph ExternalServices [External Services]
         GMaps[Google Maps API]
         OpenWeather[Weather API]
-        Gemini[Gemini AI]
+        AI[Knowledge-Based AI]
     end
 
     %% Role Interactions
@@ -140,7 +140,7 @@ graph TD
     %% External API Calls
     App -->|"Get Current Location"| GMaps
     App -->|"Fetch Weather Data"| OpenWeather
-    App -->|"Chat with Assistant"| Gemini
+    App -->|"Chat with Assistant"| AI
 ```
 
 ---

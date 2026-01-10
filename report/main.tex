@@ -99,7 +99,7 @@ The proposed system is an intelligent companion that integrates \textbf{Real-Tim
 With the rise in solo travel and remote tourism, the need for a reliable digital guardian has never been greater. Tourists often fall victim to scams, get lost in navigation, or find themselves in emergency situations without knowing whom to contact. This project aims to bridge the gap between technology and personal safety, providing a "Virtual Tourist Police" that is always accessible.
 
 \subsection{Brief Overview}
-The app is built using **Flutter** for cross-platform compatibility (Android/iOS) and uses **Firebase** as a robust backend for real-time data handling. It leverages **Google Maps API** for precise location tracking and **Google's Gemini API** to provide an AI-powered smart travel guide that can answer queries, translate languages, and suggest itineraries.
+The app is built using **Flutter** for cross-platform compatibility (Android/iOS) and uses **Firebase** as a robust backend for real-time data handling. It leverages **Google Maps API** for precise location tracking and **Custom Knowledge-Based AI** to provide an AI-powered smart travel guide that can answer queries, translate languages, and suggest itineraries.
 
 \newpage
 
@@ -110,7 +110,7 @@ The primary goal of the Smart Safety Tourist App is to create a secure ecosystem
 
 \begin{itemize}
     \item \textbf{To Enhance Tourist Safety:} Implement a robust SOS mechanism that allows users to instantly alert emergency contacts and authorities with their live GPS location.
-    \item \textbf{To Provide Intelligent Assistance:} Integrate a Generative AI chatbot (Gemini) that acts as a 24/7 personalized travel guide, offering information on history, culture, and local amenities.
+    \item \textbf{To Provide Intelligent Assistance:} Integrate a Knowledge-Based AI chatbot that acts as a 24/7 personalized travel guide, offering information on history, culture, and local amenities.
     \item \textbf{To Facilitate Seamless Navigation:} Utilize Google Maps to display real-time positions, nearby hospitals, police stations, ATMS, and tourist attractions.
     \item \textbf{To Secure Personal Documents:} Develop a "Digital ID Locker" where users can securely store encryped copies of their passports, visas, and IDs for easy access.
     \item \textbf{To Empower Authorities:} Create a dedicated dashboard for Tourist Police/Authorities to monitor alerts and manage safety in their jurisdiction.
@@ -160,7 +160,7 @@ A Backend-as-a-Service (BaaS) platform by Google.
 \subsection{APIs and AI Services}
 \begin{itemize}
     \item \textbf{Google Maps SDK:} Incorporated for rendering maps, placing markers, and obtaining user geocodes.
-    \item \textbf{Google Gemini API:} The core of the "Smart Assistant." It uses Large Language Models (LLM) to process natural language queries and provide context-aware travel advice.
+    \item \textbf{Knowledge-Based AI:} The core of the "Smart Assistant." It uses NLP models to process natural language queries and provide context-aware travel advice.
 \end{itemize}
 
 \newpage
@@ -231,7 +231,7 @@ Wireframes were created using tools like Figma. Focus was placed on High Contras
     \item \textbf{Sprint 1:} Setup Flutter environment and Firebase project.
     \item \textbf{Sprint 2:} Implement Authentication and Database schema.
     \item \textbf{Sprint 3:} Integration of Google Maps and Geolocation logic.
-    \item \textbf{Sprint 4:} Integration of Gemini AI API.
+    \item \textbf{Sprint 4:} Integration of Knowledge-Based AI.
 \end{itemize}
 
 \subsection{Phase 4: Testing & Deployment}
@@ -256,7 +256,7 @@ The system architecture consists of three main layers: The Presentation Layer, T
 \end{itemize}
 
 \subsection{Data Flow Description}
-When a user launches the app, a secure session is established via Firebase Auth. Location streams are initialized in the background. If the user moves significantly ($>10m$), the new coordinates are pushed to Firestore. If the user asks a question, the query is sent to Gemini, and the text response is streamed back to the Chat widget.
+When a user launches the app, a secure session is established via Firebase Auth. Location streams are initialized in the background. If the user moves significantly ($>10m$), the new coordinates are pushed to Firestore. If the user asks a question, the query is sent to the AI module, and the text response is streamed back to the Chat widget.
 
 % Diagram
 \begin{figure}[H]
@@ -337,7 +337,7 @@ This chapter details the code structure and logic flows.
   /services         # API Calls
       /auth_service.dart
       /location_service.dart
-      /gemini_service.dart
+      /ai_service.dart
 \end{verbatim}
 
 \subsection{State Management}
@@ -441,11 +441,11 @@ class MyApp extends StatelessWidget {
 }
 \end{verbatim}
 
-\subsection{Gemini AI Service (gemini\_service.dart)}
+\subsection{Knowledge-Based AI Service (ai\_service.dart)}
 \begin{verbatim}
-class GeminiService {
-  final model = GenerativeModel(
-      model: 'gemini-pro', 
+class AIService {
+  final model = KnowledgeBaseModel(
+      model: 'kb-v1', 
       apiKey: API_KEY
   );
 
@@ -511,7 +511,7 @@ While the current version is feature-rich, the roadmap for future development in
     \item Flutter Documentation. https://flutter.dev
     \item Firebase Documentation. https://firebase.google.com
     \item Google Maps Platform. https://developers.google.com/maps
-    \item Google AI for Developers (Gemini). https://ai.google.dev
+    \item Google Maps Platform. https://developers.google.com/maps
     \item Buhalis, D. (2015). "Smart Tourism Destinations." In \textit{Information and Communication Technologies in Tourism}.
     \item "Safety in Tourism: A Global analysis," World Tourism Organization (UNWTO).
 \end{enumerate}
